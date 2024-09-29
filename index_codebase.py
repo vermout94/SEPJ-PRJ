@@ -1,19 +1,19 @@
 import os
 import re
 from elasticsearch import Elasticsearch
-from transformers import AutoTokenizer, AutoModel
-
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
 # Initializing Elasticsearch
 es = Elasticsearch(hosts=["http://localhost:9200"])
 index_name = "codebase_index"
-
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 # Loading the Hugging Face model
 # Model we use: codellama 7b / parameters: 6.74B / size: 3.8GB (https://ollama.com/library/codellama)
-model_name = "codellama/CodeLlama-7b"
+model_name = "codellama/CodeLlama-7b-hf"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModel.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name)
 
 # Path to codebase
 codebase_directory = "/path/to/codebase"
