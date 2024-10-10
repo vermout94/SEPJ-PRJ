@@ -1,10 +1,16 @@
 import sys
+import os
 from elasticsearch import Elasticsearch
 
 
 # Function to search the codebase using the provided query
 def search_codebase(query, search_type="content"):
-    es = Elasticsearch(hosts=["http://localhost:9200"])
+    es_user = os.getenv('ES_USERNAME')
+    es_password = os.getenv('ES_PASSWORD')
+    es = Elasticsearch(
+        hosts=["http://localhost:9200"],
+        http_auth=(es_user, es_password)
+    )
     index_name = "codebase_index"
 
     # Search query based on the search type (content, function_name, class_name)

@@ -1,0 +1,12 @@
+GET http://localhost:9200/codebase_index/_search
+Content-Type: application/json
+Authorization: Basic ZWxhc3RpYzpwYXNzd29yZA==
+
+{
+  "query": {
+    "match": {
+      "content": "for loop"
+    }
+  }
+}
+
