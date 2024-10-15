@@ -9,6 +9,7 @@ def main():
         print("1. Content (e.g., keywords in code)")
         print("2. Function Name")
         print("3. Class Name")
+        print("4. Use LLM")
         print("q to Quit")
 
         search_type = input("Enter the number corresponding to your search type (1/2/3), or 'q' to quit: ")
@@ -21,6 +22,9 @@ def main():
             break
         elif search_type == '3':
             search_type = "class"
+            break
+        elif search_type == '4':
+            search_type = "llm"
             break
         elif search_type == 'q':
             print("Quitting the search.")

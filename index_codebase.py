@@ -12,7 +12,7 @@ es_user = os.getenv('ES_USERNAME')
 es_password = os.getenv('ES_PASSWORD')
 es = Elasticsearch(
     hosts=["http://localhost:9200"],
-    http_auth=(es_user, es_password)
+    http_auth=("elastic", "password")
 )
 
 # Loading the Hugging Face model
@@ -72,6 +72,7 @@ def index_codebase():
                         }
 
                         # Index document in Elasticsearch
+                        print(doc)
                         es.index(index=index_name, body=doc)
                         print(f"Indexed {file_path}, line {i + 1}")
 
