@@ -35,6 +35,7 @@ def structure_query(query):
         "prompt": prompt,
         "model": "llama3.2"
     }
+
     try:
         response = requests.post(api_url, json=data, headers=headers)
         # Check if response status is OK
@@ -69,8 +70,8 @@ def structure_query(query):
 
 # Function to search the codebase using the provided query
 def search_codebase(query, search_type="content"):
-    es_user = os.getenv('ES_USERNAME')
-    es_password = os.getenv('ES_PASSWORD')
+    es_user = 'elastic' #os.getenv('ES_USERNAME')
+    es_password = 'QBSb_3jAgZOd_QRd00nZ' #os.getenv('ES_PASSWORD')
     es_host = "http://localhost:9200"
     index_name = "codebase_index"
 

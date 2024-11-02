@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 from elasticsearch import Elasticsearch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -8,11 +9,13 @@ import torch
 
 index_name = "codebase_index"
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-es_user = os.getenv('ES_USERNAME')
-es_password = os.getenv('ES_PASSWORD')
-es = Elasticsearch(
-    hosts=["http://localhost:9200"],
-    http_auth=("elastic", "password")
+es_user = 'elastic' #os.getenv('ES_USERNAME')
+es_password = 'QBSb_3jAgZOd_QRd00nZ' #os.getenv('ES_PASSWORD')
+es_client = Elasticsearch(
+    "https://localhost:9200",
+    ca_certs=r".\http_ca.crt",
+    basic_auth=(es_user, es_password),
+    request_timeout=60
 )
 
 # Loading the Hugging Face model
@@ -52,14 +55,24 @@ def index_codebase():
 
                         # Tokenize and generate outputs
                         inputs = tokenizer(line, return_tensors="pt").to(device)
-                        with torch.no_grad():
+                        with torch.no_grad(): # no_grad() --> Disabling gradient calculation is useful for inference, when you are sure that you will not call Tensor.backward().
+                                              # It will reduce memory consumption for computations that would otherwise have requires_grad=True.
                             outputs = model(**inputs)
                             # Extract logits or another tensor attribute
                             logits = outputs.logits
                             embedding = logits[0].detach().cpu().numpy().tolist()
                             del outputs
                             del logits
-                            torch.mps.empty_cache()
+
+                            if platform.system()=='Windows':
+
+                                torch.cuda.empty_cache()
+
+                            if platform.system()=='Darwin': # Darwin --> Mac
+                                                              # https://stackoverflow.com/questions/1854/how-to-identify-which-os-python-is-running-on
+
+                                torch.mps.empty_cache() # "mps" refers to "Metal Performance Shaders" which are available for Mac (Apple)
+                                                        # --> see: https://developer.apple.com/metal/pytorch/
 
                         # Create document for Elasticsearch with the extracted embedding
                         doc = {
@@ -72,10 +85,13 @@ def index_codebase():
                         }
 
                         # Index document in Elasticsearch
-                        print(doc)
-                        es.index(index=index_name, body=doc)
-                        print(f"Indexed {file_path}, line {i + 1}")
+                        print(file_path + ' | line: ' + str(i))
+                        #print(doc)
+                        es_client.index(index=index_name, body=doc)
+                        #print(f"Indexed {file_path}, line {i + 1}")
 
+    resp = es_client.count(index=index_name)
+    print("Number of indexed lines: " + str(resp["count"]))
 
 # Running the indexing process
 if __name__ == "__main__":

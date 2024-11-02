@@ -4,7 +4,7 @@ import time
 import sys
 
 # Configuration
-ES_VERSION = "8.15.2"
+ES_VERSION = "8.15.3"
 ES_PORT = 9200
 ES_HOST = f"http://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
@@ -55,6 +55,19 @@ def run_elasticsearch():
     print("Error: Elasticsearch did not start. Exiting.")
     sys.exit(1)
 
+def check_if_elasticsearch_is_running():
+    # Waiting for Elasticsearch to start
+    print("Waiting for Elasticsearch to start...")
+    for _ in range(20):
+        try:
+            subprocess.check_output(["curl", "-s", ES_HOST])
+            print("Elasticsearch is running.")
+            return
+        except subprocess.CalledProcessError:
+            time.sleep(5)
+            print("Waiting for Elasticsearch...")
+    print("Error: Elasticsearch did not start. Exiting.")
+    sys.exit(1)
 
 # Creating custom mapping in Elasticsearch
 def create_custom_mapping():
@@ -90,8 +103,9 @@ def run_indexing_script():
 
 # Main setup process
 def main():
-    install_docker()
-    run_elasticsearch()
+    #install_docker()
+    #run_elasticsearch()
+    #check_if_elasticsearch_is_running()
     create_custom_mapping()
     install_python_dependencies()
     run_indexing_script()
