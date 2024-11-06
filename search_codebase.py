@@ -18,7 +18,8 @@ def structure_query(query):
         query for an elasticsearch database. ```{}```. output the json payload for the get request Based on the input 
         text. you will not provide any additional text.
 
-        The query follows the following structure, your content will be placed in the space between the double backticks:
+        The query follows the following structure, your content will be placed in the space between the double 
+        backticks:
 
         {{
           "query": {{

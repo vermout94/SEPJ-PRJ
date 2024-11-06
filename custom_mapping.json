@@ -1,31 +1,25 @@
 {
-  "mappings": {
-    "properties": {
-      "content": {
-        "_comment": "Full-text search for code content",
-        "type": "text"
-      },
-      "file_path": {
-        "_comment": "Exact match search for file paths",
-        "type": "keyword"
-      },
-      "function_name": {
-        "_comment": "Full-text search for function names",
-        "type": "text"
-      },
-      "class_name": {
-        "_comment": "Full-text search for class names",
-        "type": "text"
-      },
-      "line_number": {
-        "_comment": "Output of line number",
-        "type": "integer"
-      },
-      "embedding": {
-        "_comment": "The dense_vector type is used to store embeddings for semantic searches. You'll need to adjust the dims value according to the dimension size of your model's embeddings.",
-        "type": "dense_vector",
-        "dims": 768
-      }
+    "mappings": {
+        "properties": {
+            "content": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+            },
+            "embedding": {
+                "type": "dense_vector",
+                "dims": 768
+            },
+            "file_path": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+            },
+            "function_name": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+            },
+            "line_number": {
+                "type": "long"
+            }
+        }
     }
-  }
 }
