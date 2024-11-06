@@ -24,7 +24,8 @@
       "embedding": {
         "_comment": "The dense_vector type is used to store embeddings for semantic searches. You'll need to adjust the dims value according to the dimension size of your model's embeddings.",
         "type": "dense_vector",
-        "dims": 768
+        "dims": 768,
+        "index": true
       }
     }
   }

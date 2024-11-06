@@ -71,7 +71,7 @@ def structure_query(query):
 # Function to search the codebase using the provided query
 def search_codebase(query, search_type="content"):
     es_user = 'elastic' #os.getenv('ES_USERNAME')
-    es_password = 'QBSb_3jAgZOd_QRd00nZ' #os.getenv('ES_PASSWORD')
+    es_password = 'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
     es_host = "http://localhost:9200"
     index_name = "codebase_index"
 
@@ -130,7 +130,7 @@ def search_codebase(query, search_type="content"):
 
 # Main execution
 if __name__ == "__main__":
-    search_codebase("code that prints numbers in a loop", "llm")
+    search_codebase("code that prints numbers in a loop", "content")
     """# Ensuring the query and search type are passed as command-line arguments
     if len(sys.argv) != 3:
         print("Usage: ./search_codebase.py '<query>' <search_type> (content|function|class)")

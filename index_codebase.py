@@ -1,6 +1,16 @@
 import os
 import platform
 import re
+import subprocess
+import sys
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# install("elasticsearch")
+# install("transformers")
+# install("torch")
+
 from elasticsearch import Elasticsearch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
@@ -10,7 +20,7 @@ import torch
 index_name = "codebase_index"
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 es_user = 'elastic' #os.getenv('ES_USERNAME')
-es_password = 'QBSb_3jAgZOd_QRd00nZ' #os.getenv('ES_PASSWORD')
+es_password = 'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
 es_client = Elasticsearch(
     "https://localhost:9200",
     ca_certs=r".\http_ca.crt",
@@ -61,6 +71,12 @@ def index_codebase():
                             # Extract logits or another tensor attribute
                             logits = outputs.logits
                             embedding = logits[0].detach().cpu().numpy().tolist()
+                            print(len(embedding))
+                            embedding_str = str(embedding[0])
+                            print(embedding_str[:10])
+                            embedding_str = str(embedding[1])
+                            print(embedding_str[:10])
+
                             del outputs
                             del logits
 
