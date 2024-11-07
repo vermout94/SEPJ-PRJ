@@ -4,6 +4,9 @@ import re
 import subprocess
 import sys
 
+from numpy.ma.core import squeeze
+
+
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
@@ -31,7 +34,7 @@ es_client = Elasticsearch(
 # Loading the Hugging Face model
 model_name = "BAAI/bge-base-en-v1.5"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
 
 # Path to codebase
 codebase_directory = "./test_files/"
@@ -69,16 +72,13 @@ def index_codebase():
                                               # It will reduce memory consumption for computations that would otherwise have requires_grad=True.
                             outputs = model(**inputs)
                             # Extract logits or another tensor attribute
-                            logits = outputs.logits
-                            embedding = logits[0].detach().cpu().numpy().tolist()
-                            print(len(embedding))
-                            embedding_str = str(embedding[0])
-                            print(embedding_str[:10])
-                            embedding_str = str(embedding[1])
-                            print(embedding_str[:10])
+                            #logits = outputs.logits
+                            #embedding = logits[0].detach().cpu().numpy().tolist()
+                            hidden_states = outputs.hidden_states[-1] # Get the last layer hidden
+                            embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()
 
                             del outputs
-                            del logits
+                            #del logits
 
                             if platform.system()=='Windows':
 
@@ -102,6 +102,14 @@ def index_codebase():
 
                         # Index document in Elasticsearch
                         print(file_path + ' | line: ' + str(i))
+
+                        print("Length of embedding: ", len(embedding))
+                        # print("Length of embedding first sub vector: ", len(embedding[0]))
+                        # embedding_str = str(embedding[0])
+                        # print(embedding_str[:10])
+                        # embedding_str = str(embedding[1])
+                        # print(embedding_str[:10])
+
                         #print(doc)
                         es_client.index(index=index_name, body=doc)
                         #print(f"Indexed {file_path}, line {i + 1}")

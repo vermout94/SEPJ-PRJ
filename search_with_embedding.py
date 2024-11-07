@@ -8,7 +8,7 @@ device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 # Loading the Hugging Face model
 model_name = "BAAI/bge-base-en-v1.5"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
 
 def get_query_embedding(query):
     inputs = tokenizer(query, return_tensors="pt").to(device)
@@ -16,10 +16,13 @@ def get_query_embedding(query):
                           # It will reduce memory consumption for computations that would otherwise have requires_grad=True.
         outputs = model(**inputs)
         # Extract logits or another tensor attribute
-        logits = outputs.logits
-        embedding = logits[0].detach().cpu().numpy().tolist()
+        # logits = outputs.logits
+        # embedding = logits[0].detach().cpu().numpy().tolist()
+        hidden_states = outputs.hidden_states[-1]  # Get the last layer hidden
+        embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()
+
         del outputs
-        del logits
+        # del logits
 
         if platform.system()=='Windows':
 
