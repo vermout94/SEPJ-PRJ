@@ -1,5 +1,5 @@
 import subprocess
-
+from search_codebase import search_codebase
 
 def main():
     # Asking for search type and validate input
@@ -9,16 +9,23 @@ def main():
         print("1. Content (e.g., keywords in code)")
         print("2. Function Name")
         print("3. Class Name")
+        print("4. Use LLM")
         print("q to Quit")
 
         search_type = input("Enter the number corresponding to your search type (1/2/3), or 'q' to quit: ")
 
         if search_type == '1':
             search_type = "content"
+            break
         elif search_type == '2':
             search_type = "function"
+            break
         elif search_type == '3':
             search_type = "class"
+            break
+        elif search_type == '4':
+            search_type = "llm"
+            break
         elif search_type == 'q':
             print("Quitting the search.")
             return
@@ -36,8 +43,8 @@ def main():
 
     # Calling the "search_codebase.py" script with the given query and search type
     try:
-        result = subprocess.run(['./search_codebase.py', search_query, search_type], capture_output=True, text=True)
-        print(result.stdout)
+        result = search_codebase(search_query, search_type)
+
     except Exception as e:
         print(f"An error occurred: {e}")
 

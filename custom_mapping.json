@@ -1,25 +1,25 @@
 {
-  "mappings": {
-    "properties": {
-      "content": {
-        "type": "text"
-      },
-      "file_path": {
-        "type": "keyword"
-      },
-      "function_name": {
-        "type": "text"
-      },
-      "class_name": {
-        "type": "text"
-      },
-      "line_number": {
-        "type": "integer"
-      },
-      "embedding": {
-        "type": "dense_vector",
-        "dims": 3
-      }
+    "mappings": {
+        "properties": {
+            "content": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+            },
+            "embedding": {
+                "type": "dense_vector",
+                "dims": 768
+            },
+            "file_path": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+            },
+            "function_name": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+            },
+            "line_number": {
+                "type": "long"
+            }
+        }
     }
-  }
 }

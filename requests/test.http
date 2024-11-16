@@ -1,0 +1,14 @@
+GET http://localhost:9200/codebase_index/_search
+Content-Type: application/json
+Authorization: Basic ZWxhc3RpYzpwYXNzd29yZA==
+
+{
+  "query": {
+    "match": {
+      "content": "print numbers in a loop"
+    }
+  },
+  "_source": ["line_path", "content", "line_number"],
+  "size": 10
+}
+

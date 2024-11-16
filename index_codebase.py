@@ -8,17 +8,17 @@ import torch
 
 index_name = "codebase_index"
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-es_user = "elastic"
-es_password = "changeme"
+es_user = os.getenv('ES_USERNAME')
+es_password = os.getenv('ES_PASSWORD')
 es = Elasticsearch(
     hosts=["http://localhost:9200"],
-    basic_auth=(es_user, es_password)
+    http_auth=("elastic", "password")
 )
 
 # Loading the Hugging Face model
 model_name = "BAAI/bge-base-en-v1.5"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
 
 # Path to codebase
 codebase_directory = "./test_files/"
@@ -31,37 +31,39 @@ def extract_metadata(code_content):
     return function_names, class_names
 
 
+def get_embedding(text):
+    inputs = tokenizer(text, return_tensors="pt").to(device)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        # Use hidden states and apply mean pooling
+        hidden_states = outputs.hidden_states[-1]  # Get the last layer hidden states
+        embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()  # Average across tokens
+    return embedding
+
+
 # Function to index codebase files
 # Function to index the codebase
 def index_codebase():
     for root, dirs, files in os.walk(codebase_directory):
         for file in files:
-            # Add other file extensions as needed
             if file.endswith(".py") or file.endswith(".java"):
                 file_path = os.path.join(root, file)
                 with open(file_path, 'r', encoding='utf-8') as f:
                     code_content = f.read()
                     function_names, class_names = extract_metadata(code_content)
 
-                    # Index each line separately with metadata
                     lines = code_content.split('\n')
                     for i, line in enumerate(lines):
-                        # Skip empty lines to avoid unnecessary processing
                         if not line.strip():
                             continue
 
-                        # Tokenize and generate outputs
-                        inputs = tokenizer(line, return_tensors="pt").to(device)
-                        with torch.no_grad():
-                            outputs = model(**inputs)
-                            # Extract logits or another tensor attribute
-                            logits = outputs.logits
-                            embedding = logits[0].detach().cpu().numpy().tolist()
-                            del outputs
-                            del logits
-                            torch.mps.empty_cache()
+                        # Get embedding
+                        embedding = get_embedding(line)
 
-                        # Create document for Elasticsearch with the extracted embedding
+                        # Confirm embedding dimensions are as expected (e.g., 768)
+                        print("Embedding dimensions:", len(embedding))
+
+                        # Create document for Elasticsearch
                         doc = {
                             "content": line.strip(),
                             "file_path": file_path,
@@ -74,6 +76,7 @@ def index_codebase():
                         # Index document in Elasticsearch
                         es.index(index=index_name, body=doc)
                         print(f"Indexed {file_path}, line {i + 1}")
+
 
 
 # Running the indexing process
