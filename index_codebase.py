@@ -32,7 +32,7 @@ def extract_metadata(code_content):
 
 
 def get_embedding(text):
-    inputs = tokenizer(text, return_tensors="pt").to(device)
+    inputs = tokenizer(text, return_tensors="pt",max_length=512).to(device)
     with torch.no_grad():
         outputs = model(**inputs)
         # Use hidden states and apply mean pooling
@@ -52,31 +52,31 @@ def index_codebase():
                     code_content = f.read()
                     function_names, class_names = extract_metadata(code_content)
 
-                    lines = code_content.split('\n')
-                    for i, line in enumerate(lines):
-                        if not line.strip():
-                            continue
+                    #lines = code_content.split('\n')
+                    print(code_content)
+                    lines = code_content.strip()
+                    print(lines)
 
-                        # Get embedding
-                        embedding = get_embedding(line)
+                    # Get embedding
+                    embedding = get_embedding(lines)
 
-                        # Confirm embedding dimensions are as expected (e.g., 768)
-                        print("Embedding dimensions:", len(embedding))
+                    # Confirm embedding dimensions are as expected (e.g., 768)
+                    #print("Embedding dimensions:", len(embedding))
 
-                        # Create document for Elasticsearch
-                        doc = {
-                            "content": line.strip(),
-                            "file_path": file_path,
-                            "function_name": function_names if function_names else None,
-                            "class_name": class_names if class_names else None,
-                            "line_number": i + 1,
-                            "embedding": embedding
-                        }
+                    # Create document for Elasticsearch
+                    doc = {
+                        #"content": line.strip(),
+                        "content": lines,
+                        "file_path": file_path,
+                        "function_name": function_names if function_names else None,
+                        "class_name": class_names if class_names else None,
+                        "code_len": len(lines),
+                        "embedding": embedding
+                    }
 
-                        # Index document in Elasticsearch
-                        es.index(index=index_name, body=doc)
-                        print(f"Indexed {file_path}, line {i + 1}")
-
+                    # Index document in Elasticsearch
+                    es.index(index=index_name, body=doc)
+                    print(f"Indexed {file_path}, lines {len(lines)}")
 
 
 # Running the indexing process
