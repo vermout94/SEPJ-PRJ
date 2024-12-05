@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch
 
 es_user = 'elastic' #os.getenv('ES_USERNAME')
-es_password = 'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
+es_password = 'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
 es_host = "http://localhost:9200"
 index_name = "codebase_index"
 MAPPING_FILE = "custom_mapping.json"  # Mapping file
@@ -30,12 +30,9 @@ resp = es_client.indices.create(index=index_name,
                                               "class_name": {
                                                 "type": "text"
                                               },
-                                              "line_number": {
-                                                "type": "integer"
-                                              },
                                               "embedding": {
                                                 "type": "dense_vector",
-                                                "dims": 768
+                                                "dims": 896
                                               }
                                             }
                                           }
