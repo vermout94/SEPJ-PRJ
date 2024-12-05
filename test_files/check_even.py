@@ -3,6 +3,6 @@ def check_even(number):
         print(f"{number} is even.")
     else:
         print(f"{number} is odd.")
-
 check_even(4)
+print("Hello, World!")
 check_even(7)

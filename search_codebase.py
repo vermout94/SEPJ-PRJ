@@ -70,8 +70,10 @@ def structure_query(query):
 
 # Function to search the codebase using the provided query
 def search_codebase(query, search_type="content"):
-    es_user = os.getenv('ES_USERNAME')
-    es_password = os.getenv('ES_PASSWORD')
+    #es_user = os.getenv('ES_USERNAME')
+    #es_password = os.getenv('ES_PASSWORD')
+    es_user = "elastic"
+    es_password = "changeme"
     es_host = "http://localhost:9200"
     index_name = "codebase_index"
 

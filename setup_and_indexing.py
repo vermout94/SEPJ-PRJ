@@ -13,7 +13,6 @@ INDEX_NAME = "codebase_index"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
 MAPPING_FILE = "custom_mapping.json"
 ELASTIC_PASSWORD = "changeme"  # Replace with your desired password
-OLLAMA_MODEL = "llama3.2"
 
 # Check if a command exists
 def command_exists(command):
@@ -29,42 +28,6 @@ def install_docker():
     else:
         print("Docker is already installed.")
 
-# Install Ollama if necessary
-def install_ollama():
-    if not command_exists("ollama"):
-        print("Ollama CLI not found. Please install it from the official website.")
-        sys.exit(1)
-    else:
-        print("Ollama CLI is already installed.")
-
-# Download Llama model if not available
-def download_ollama_model():
-    try:
-        result = subprocess.run(["ollama", "pull", OLLAMA_MODEL], capture_output=True, text=True)
-        if result.returncode == 0:
-            print(f"Model {OLLAMA_MODEL} downloaded successfully.")
-        else:
-            print(f"Error downloading model {OLLAMA_MODEL}: {result.stderr}")
-            sys.exit(1)
-    except Exception as e:
-        print(f"Exception while downloading model {OLLAMA_MODEL}: {e}")
-        sys.exit(1)
-
-# Check if Ollama server is running and start if necessary
-def start_ollama_server():
-    try:
-        # Check if Ollama server is already running
-        result = subprocess.run(["pgrep", "-f", "ollama serve"], stdout=subprocess.PIPE)
-        if result.returncode != 0:  # Server not running
-            print("Starting Ollama server...")
-            subprocess.Popen(["ollama", "serve"])
-            time.sleep(3)  # Give some time for the server to start
-        else:
-            print("Ollama server is already running.")
-    except Exception as e:
-        print(f"Error starting Ollama server: {e}")
-        sys.exit(1)
-
 # Check if port is in use
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -73,15 +36,7 @@ def is_port_in_use(port):
 # Run Elasticsearch in Docker
 def run_elasticsearch():
     if is_port_in_use(ES_PORT):
-        print(f"Port {ES_PORT} is already in use. Please ensure it is available.")
-        sys.exit(1)
-
-    existing_container = subprocess.run(
-        ["docker", "ps", "-q", "-f", "name=elasticsearch"], stdout=subprocess.PIPE, text=True
-    ).stdout.strip()
-
-    if existing_container:
-        print("Elasticsearch container is already running.")
+        print(f"Port {ES_PORT} is already in use. Assuming Elasticsearch is running.")
         return
 
     print(f"Pulling Elasticsearch image {DOCKER_IMAGE}...")
@@ -91,10 +46,26 @@ def run_elasticsearch():
     subprocess.run([
         "docker", "run", "-d", "-p", f"{ES_PORT}:{ES_PORT}",
         "-e", "discovery.type=single-node",
-        "-e", "xpack.security.enabled=true",
+        "-e", f"xpack.security.enabled=true",
         "-e", f"ELASTIC_PASSWORD={ELASTIC_PASSWORD}",
         "--name", "elasticsearch", DOCKER_IMAGE
     ])
+
+    # Wait for Elasticsearch to start
+    print("Waiting for Elasticsearch to start...")
+    for _ in range(20):
+        if is_port_in_use(ES_PORT):
+            print("Elasticsearch is running.")
+            return
+        time.sleep(5)
+    print("Error: Elasticsearch did not start. Exiting.")
+    sys.exit(1)
+
+# Install required Python dependencies
+def install_python_dependencies():
+    print("Installing required Python libraries...")
+    subprocess.run(["pip3", "install", "--upgrade", "elasticsearch"])
+
 
 # Connect to Elasticsearch
 def connect_to_elasticsearch():
@@ -112,7 +83,6 @@ def connect_to_elasticsearch():
                 print(f"Attempt {attempt + 1}: Could not connect, retrying...")
         except Exception as e:
             print(f"Attempt {attempt + 1}: Connection failed due to {e}, retrying...")
-
         time.sleep(3)
 
     print("Could not connect to Elasticsearch after multiple attempts.")
@@ -127,27 +97,37 @@ def create_custom_mapping(es):
     with open(MAPPING_FILE, 'r') as file:
         mapping = file.read()
 
+    print(f"Creating custom mapping for Elasticsearch index '{INDEX_NAME}'...")
     if not es.indices.exists(index=INDEX_NAME):
         es.indices.create(index=INDEX_NAME, body=mapping)
-        print(f"Custom mapping created for index '{INDEX_NAME}'.")
+        print("Custom mapping created.")
     else:
-        print(f"Index '{INDEX_NAME}' already exists.")
+        print(f"Index '{INDEX_NAME}' already exists. Skipping creation.")
+
+# # Running the indexing script
+# def run_indexing_script():
+#     if os.path.exists("index_codebase.py"):
+#         print("Running the Python indexing script...")
+#         try:
+#             result = subprocess.run(["python3", "index_codebase.py"], capture_output=True, text=True)
+#             if result.returncode == 0:
+#                 print("Indexing script executed successfully.")
+#             else:
+#                 print(f"Indexing script failed: {result.stderr}")
+#         except Exception as e:
+#             print(f"Error while running indexing script: {e}")
+#     else:
+#         print("Error: index_codebase.py script not found.")
+
 
 # Main setup process
 def main():
     install_docker()
     run_elasticsearch()
-
-    # Connect to Elasticsearch
+    install_python_dependencies()
     es = connect_to_elasticsearch()
-
-    # Create custom mapping
     create_custom_mapping(es)
-
-    # Install and start Ollama components
-    install_ollama()
-    download_ollama_model()
-    start_ollama_server()
+  #  run_indexing_script()
 
     print("Setup completed.")
 
