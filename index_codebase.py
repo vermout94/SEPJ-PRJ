@@ -46,7 +46,7 @@ def get_embedding(text):
 def index_codebase():
     for root, dirs, files in os.walk(codebase_directory):
         for file in files:
-            if file.endswith(".py") or file.endswith(".java"):
+            if file.endswith(".py") or file.endswith(".java") or file.endswith(".php"):
                 file_path = os.path.join(root, file)
                 with open(file_path, 'r', encoding='utf-8') as f:
                     code_content = f.read()
