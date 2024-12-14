@@ -67,7 +67,7 @@ def index_codebase():
 
                 # Check if the file is new or has changed
                 if file_path not in file_hashes or file_hashes[file_path] != file_hash:
-                    print(f"Indexing file: {file_path}")
+                    print(f"Indexing or updating file: {file_path}")
 
                     try:
                         with open(file_path, 'r', encoding='utf-8') as f:
@@ -94,8 +94,11 @@ def index_codebase():
                                     "embedding": embedding,
                                 }
 
-                                # Index the document
-                                es.index(index=index_name, body=doc)
+                                # Use file path and line number as unique ID
+                                doc_id = f"{file_path}:{i + 1}"
+
+                                # Index or overwrite the document
+                                es.index(index=index_name, id=doc_id, body=doc)
 
                             # Update the hash after successful indexing
                             updated_hashes[file_path] = file_hash
@@ -109,6 +112,7 @@ def index_codebase():
     # Save merged hashes
     save_hash_database(updated_hashes)
     print("Indexing completed.")
+
 
 
 # Run the indexing process
