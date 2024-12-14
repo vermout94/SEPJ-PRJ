@@ -69,7 +69,7 @@ def get_questions(p):
     return questions
 
 
-def enumerate_text(text):7
+def enumerate_text(text):
     lines = text.split("\n")
     new_lines = ""
     for i, line in enumerate(lines):
