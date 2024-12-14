@@ -6,20 +6,24 @@ import socket
 from elasticsearch import Elasticsearch
 
 # Configuration
-ES_VERSION = "8.15.2"
+ES_VERSION = "8.15.3"
 ES_PORT = 9200
-ES_HOST = f"http://localhost:{ES_PORT}"  # Use HTTP
+ES_HOST = f"http://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
+# Path to codebase
+CODEBASE_DIR = "/path/to/codebase"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
-MAPPING_FILE = "custom_mapping.json"
-ELASTIC_PASSWORD = "changeme"  # Replace with your desired password
+# Custom mapping of Elasticsearch
+MAPPING_FILE = "custom_mapping.json"  # Mapping file
 
-# Check if a command exists
+
+# Checking if a command exists
 def command_exists(command):
     result = subprocess.run(f"command -v {command}", shell=True, stdout=subprocess.PIPE)
     return result.returncode == 0
 
-# Install Docker if necessary
+
+# Installing Docker if it's not installed
 def install_docker():
     if not command_exists("docker"):
         print("Docker not found. Installing Docker...")
@@ -33,7 +37,7 @@ def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
-# Run Elasticsearch in Docker
+# Pulling and running Elasticsearch using Docker (https://hub.docker.com/_/elasticsearch)
 def run_elasticsearch():
     if is_port_in_use(ES_PORT):
         print(f"Port {ES_PORT} is already in use. Assuming Elasticsearch is running.")
@@ -51,7 +55,7 @@ def run_elasticsearch():
         "--name", "elasticsearch", DOCKER_IMAGE
     ])
 
-    # Wait for Elasticsearch to start
+    # Waiting for Elasticsearch to start
     print("Waiting for Elasticsearch to start...")
     for _ in range(20):
         if is_port_in_use(ES_PORT):
@@ -103,21 +107,6 @@ def create_custom_mapping(es):
         print("Custom mapping created.")
     else:
         print(f"Index '{INDEX_NAME}' already exists. Skipping creation.")
-
-# # Running the indexing script
-# def run_indexing_script():
-#     if os.path.exists("index_codebase.py"):
-#         print("Running the Python indexing script...")
-#         try:
-#             result = subprocess.run(["python3", "index_codebase.py"], capture_output=True, text=True)
-#             if result.returncode == 0:
-#                 print("Indexing script executed successfully.")
-#             else:
-#                 print(f"Indexing script failed: {result.stderr}")
-#         except Exception as e:
-#             print(f"Error while running indexing script: {e}")
-#     else:
-#         print("Error: index_codebase.py script not found.")
 
 
 # Main setup process

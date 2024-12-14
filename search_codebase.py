@@ -18,8 +18,7 @@ def structure_query(query):
         query for an elasticsearch database. ```{}```. output the json payload for the get request Based on the input 
         text. you will not provide any additional text.
 
-        The query follows the following structure, your content will be placed in the space between the double 
-        backticks:
+        The query follows the following structure, your content will be placed in the space between the double backticks:
 
         {{
           "query": {{
@@ -70,10 +69,8 @@ def structure_query(query):
 
 # Function to search the codebase using the provided query
 def search_codebase(query, search_type="content"):
-    #es_user = os.getenv('ES_USERNAME')
-    #es_password = os.getenv('ES_PASSWORD')
-    es_user = "elastic"
-    es_password = "changeme"
+    es_user = os.getenv('ES_USERNAME')
+    es_password = os.getenv('ES_PASSWORD')
     es_host = "http://localhost:9200"
     index_name = "codebase_index"
 
