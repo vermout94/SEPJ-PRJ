@@ -3,7 +3,12 @@
         "properties": {
             "content": {
                 "type": "text",
-                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
             },
             "embedding": {
                 "type": "dense_vector",
@@ -11,14 +16,30 @@
             },
             "file_path": {
                 "type": "text",
-                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
             },
             "function_name": {
                 "type": "text",
-                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}}
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
             },
             "line_number": {
                 "type": "long"
+            },
+            "file_hash": {
+                "type": "keyword"
+            },
+            "code_len": {
+                "type": "integer"
             }
         }
     }

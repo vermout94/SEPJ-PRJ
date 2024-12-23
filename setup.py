@@ -3,6 +3,7 @@ import subprocess
 import time
 import sys
 import socket
+import platform
 from elasticsearch import Elasticsearch
 
 # Configuration
@@ -10,25 +11,31 @@ ES_VERSION = "8.15.3"
 ES_PORT = 9200
 ES_HOST = f"http://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
-# Path to codebase
-CODEBASE_DIR = "/path/to/codebase"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
-# Custom mapping of Elasticsearch
-MAPPING_FILE = "custom_mapping.json"  # Mapping file
+MAPPING_FILE = "custom_mapping.json"
+ELASTIC_PASSWORD = "password"
 
+# Check platform
+IS_WINDOWS = platform.system().lower() == "windows"
 
 # Checking if a command exists
 def command_exists(command):
-    result = subprocess.run(f"command -v {command}", shell=True, stdout=subprocess.PIPE)
-    return result.returncode == 0
+    try:
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        return True
+    except FileNotFoundError:
+        return False
 
-
-# Installing Docker if it's not installed
+# Install Docker if not installed (Windows-specific adjustments)
 def install_docker():
     if not command_exists("docker"):
-        print("Docker not found. Installing Docker...")
-        subprocess.run(["sudo", "apt-get", "update"])
-        subprocess.run(["sudo", "apt-get", "install", "-y", "docker.io"])
+        if IS_WINDOWS:
+            print("Docker not found. Please install Docker Desktop for Windows manually.")
+            sys.exit(1)
+        else:
+            print("Docker not found. Installing Docker...")
+            subprocess.run(["sudo", "apt-get", "update"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "-y", "docker.io"], check=True)
     else:
         print("Docker is already installed.")
 
@@ -37,23 +44,24 @@ def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
-# Pulling and running Elasticsearch using Docker (https://hub.docker.com/_/elasticsearch)
+# Run Elasticsearch using Docker
 def run_elasticsearch():
     if is_port_in_use(ES_PORT):
         print(f"Port {ES_PORT} is already in use. Assuming Elasticsearch is running.")
         return
 
     print(f"Pulling Elasticsearch image {DOCKER_IMAGE}...")
-    subprocess.run(["docker", "pull", DOCKER_IMAGE])
+    subprocess.run(["docker", "pull", DOCKER_IMAGE], check=True)
 
     print("Running Elasticsearch...")
-    subprocess.run([
+    docker_command = [
         "docker", "run", "-d", "-p", f"{ES_PORT}:{ES_PORT}",
         "-e", "discovery.type=single-node",
         "-e", f"xpack.security.enabled=true",
         "-e", f"ELASTIC_PASSWORD={ELASTIC_PASSWORD}",
         "--name", "elasticsearch", DOCKER_IMAGE
-    ])
+    ]
+    subprocess.run(docker_command, check=True)
 
     # Waiting for Elasticsearch to start
     print("Waiting for Elasticsearch to start...")
@@ -62,14 +70,14 @@ def run_elasticsearch():
             print("Elasticsearch is running.")
             return
         time.sleep(5)
+
     print("Error: Elasticsearch did not start. Exiting.")
     sys.exit(1)
 
-# Install required Python dependencies
+# Install Python dependencies
 def install_python_dependencies():
     print("Installing required Python libraries...")
-    subprocess.run(["pip3", "install", "--upgrade", "elasticsearch"])
-
+    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "elasticsearch"], check=True)
 
 # Connect to Elasticsearch
 def connect_to_elasticsearch():
@@ -108,7 +116,6 @@ def create_custom_mapping(es):
     else:
         print(f"Index '{INDEX_NAME}' already exists. Skipping creation.")
 
-
 # Main setup process
 def main():
     install_docker()
@@ -116,8 +123,6 @@ def main():
     install_python_dependencies()
     es = connect_to_elasticsearch()
     create_custom_mapping(es)
-  #  run_indexing_script()
-
     print("Setup completed.")
 
 if __name__ == "__main__":
