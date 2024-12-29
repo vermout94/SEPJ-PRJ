@@ -2,6 +2,7 @@ from datetime import datetime
 
 import subprocess
 import sys
+import os
 
 # def install(package):
 #     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
@@ -14,27 +15,24 @@ from elasticsearch import Elasticsearch
 
 #client = Elasticsearch("http://localhost:9200")
 
+es_password = os.getenv('ES_PASSWORD')
+
+#print(es_password)
+
 es_user = 'elastic' #os.getenv('ES_USERNAME')
-es_password = 'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
+#es_password = 'QBSb_3jAgZOd_QRd00nZ' # 'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
 
 # You need to pass the username and password to the Elasticsearch object as shown below:
 
-# es_client = Elasticsearch(['http://localhost:9200'], basic_auth=(es_user, es_password))
-# es_client = Elasticsearch(hosts="http://elastic:QBSb_3jAgZOd_QRd00nZ@localhost:9200/")
-
-# from elasticsearch import Elasticsearch
-
-# Adds the HTTP header 'Authorization: Basic <base64 username:password>'
 es_client = Elasticsearch(
     "https://localhost:9200",
-    ca_certs=r".\http_ca.crt",
-    basic_auth=(es_user, es_password)
+    basic_auth=(es_user, es_password),
+    ca_certs=r".\http_ca.crt"
+    #verify_certs=False
 )
 
-# es_client = Elasticsearch(
-#     hosts=["http://localhost:9200"],
-#     http_auth=("elastic", "password")
-# )
+if es_client.ping():
+    print("Connected to Elasticsearch")
 
 print("Elasticseach info: ", es_client.info())
 print("Indices in database: ", list(es_client.indices.get(index="*").keys()))
@@ -53,12 +51,12 @@ print("Indices in database: ", list(es_client.indices.get(index="*").keys()))
 # resp = es_client.index(index="test-index", id=1, document=doc)
 # print(resp["result"])
 
-resp = es_client.count(index="test-index")
-print("Number of indexed documents: " + str(resp["count"]))
+# resp = es_client.count(index="test-index")
+# print("Number of indexed documents: " + str(resp["count"]))
 
-resp = es_client.get(index="test-index", id=1)
-print("Source of indexed document with id=1: " + str(resp["_source"]))
-
+# resp = es_client.get(index="test-index", id=1)
+# print("Source of indexed document with id=1: " + str(resp["_source"]))
+#
 resp = es_client.count(index="codebase_index")
 print("Number of indexed documents in codebase: " + str(resp["count"]))
 

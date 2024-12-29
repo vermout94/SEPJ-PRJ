@@ -9,11 +9,11 @@ from elasticsearch import Elasticsearch
 # Configuration
 ES_VERSION = "8.15.3"
 ES_PORT = 9200
-ES_HOST = f"http://localhost:{ES_PORT}"
+ES_HOST = f"https://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
 MAPPING_FILE = "custom_mapping.json"
-ELASTIC_PASSWORD = "password"
+ELASTIC_PASSWORD = os.getenv('ES_PASSWORD') #"password"
 
 # Check platform
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -81,6 +81,7 @@ def install_python_dependencies():
 
 # Connect to Elasticsearch
 def connect_to_elasticsearch():
+    print("Trying to connect to Elasticsearch server...")
     for attempt in range(20):
         try:
             es = Elasticsearch(
@@ -112,7 +113,7 @@ def create_custom_mapping(es):
     print(f"Creating custom mapping for Elasticsearch index '{INDEX_NAME}'...")
     if not es.indices.exists(index=INDEX_NAME):
         es.indices.create(index=INDEX_NAME, body=mapping)
-        print("Custom mapping created.")
+        print("Index with custom mapping created.")
     else:
         print(f"Index '{INDEX_NAME}' already exists. Skipping creation.")
 
