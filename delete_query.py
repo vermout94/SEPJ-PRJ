@@ -16,9 +16,11 @@ delete_query = {
         "match_all": {}
     }
 }
-
+resp = es.count(index="codebase_index")
 try:
-    response = es.delete_by_query(index=index_name, body=delete_query)
-    print(f"Deleted {response['deleted']} documents from the index '{index_name}'.")
+    #response = es.delete_by_query(index=index_name, body=delete_query)
+    response = es.indices.delete(index=index_name)
+    #print(f"Deleted {response['deleted']} documents from the index '{index_name}'.")
+    #print("Number of indexed documents: " + str(resp["count"]))
 except Exception as e:
     print(f"Error: {e}")

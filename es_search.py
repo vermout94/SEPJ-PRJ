@@ -15,7 +15,8 @@ es = Elasticsearch(
 )
 
 # Load the model for embedding extraction
-model_name = "BAAI/bge-base-en-v1.5"
+# model_name = "BAAI/bge-base-en-v1.5"
+model_name = "Qwen/Qwen2.5-Coder-0.5B"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name).to(device)  # Use AutoModel, not AutoModelForCausalLM
 
@@ -65,8 +66,13 @@ def get_questions(p):
             with open(os.path.join(root, file), 'r') as f:
                 code_snippet = file.split(".")[0]
                 questions[code_snippet] = {"question": f.read().encode('utf-8').decode('unicode_escape')}
-                questions[code_snippet]["answer"] = "./test_files/"+code_snippet+".py"
+                # rewrite to use full path
+                questions[code_snippet]["answer"] = os.path.join(root, file)
+                print(questions[code_snippet]["answer"])
+                #questions[code_snippet]["answer"] = "./test_files/"+code_snippet+".py"
     return questions
+
+
 
 
 def enumerate_text(text):
@@ -141,7 +147,7 @@ if __name__ == "__main__":
             print("Answer: " + questions[q]["answer"].strip())
             print(str(hits[0]["_source"]["file_path"].strip()))
             print(str(hits[0]["_score"]))
-            is_correct = any(str(questions[q]["answer"].strip()) == str(hits[i]["_source"]["file_path"].strip()) for i in range(5))
+            is_correct = any(str(questions[q]["answer"].strip()) == str(hits[i]["_source"]["file_path"].strip()) for i in range(1))
             #print("Query result correct?\n" + str(is_correct))
             if is_correct:
                 count_correct += 1
