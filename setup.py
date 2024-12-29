@@ -102,7 +102,7 @@ def connect_to_elasticsearch():
     sys.exit(1)
 
 # Create a custom mapping in Elasticsearch
-def create_custom_mapping(es):
+def create_custom_mapping(es, idx_name):
     if not os.path.exists(MAPPING_FILE):
         print(f"Error: {MAPPING_FILE} not found.")
         sys.exit(1)
@@ -110,12 +110,12 @@ def create_custom_mapping(es):
     with open(MAPPING_FILE, 'r') as file:
         mapping = file.read()
 
-    print(f"Creating custom mapping for Elasticsearch index '{INDEX_NAME}'...")
-    if not es.indices.exists(index=INDEX_NAME):
-        es.indices.create(index=INDEX_NAME, body=mapping)
+    print(f"Creating custom mapping for Elasticsearch index '{idx_name}'...")
+    if not es.indices.exists(index=idx_name):
+        es.indices.create(index=idx_name, body=mapping)
         print("Index with custom mapping created.")
     else:
-        print(f"Index '{INDEX_NAME}' already exists. Skipping creation.")
+        print(f"Index '{idx_name}' already exists. Skipping creation.")
 
 # Main setup process
 def main():
@@ -123,7 +123,8 @@ def main():
     run_elasticsearch()
     install_python_dependencies()
     es = connect_to_elasticsearch()
-    create_custom_mapping(es)
+    create_custom_mapping(es, INDEX_NAME)
+    create_custom_mapping(es, "tmp_idx")
     print("Setup completed.")
 
 if __name__ == "__main__":
