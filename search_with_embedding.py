@@ -62,22 +62,15 @@ es_client = Elasticsearch(
 search_embedding = get_query_embedding("braking the tram")
 
 # print(type(search_embedding))
-#
 # print("Length of embedding to search for: ", len(search_embedding))
-
-# query_embedding_str = str(query_embedding[0])
-#
-# query_embedding_str_length = len(query_embedding_str)
-# print(query_embedding_str_length)
-
-# print(query_embedding_str[1:50])
-# print(query_embedding_str[-50:query_embedding_str_length-1])
-#
-# print(query_embedding_str[:50])
-# print(query_embedding_str[-50:])
-
-# query_embedding_str_as_vector = query_embedding_str[1:query_embedding_str_length-1]
-
+# search_embedding_str = str(search_embedding[0])
+# search_embedding_str_length = len(search_embedding_str)
+# print(search_embedding_str_length)
+# print(search_embedding_str[1:50])
+# print(search_embedding_str[-50:query_embedding_str_length-1])
+# print(search_embedding_str[:50])
+# print(search_embedding_str[-50:])
+# search_embedding_str_as_vector = search_embedding_str[1:search_embedding_str_length-1]
 # print(search_embedding)
 
 def print_resp(resp, mode):
@@ -110,7 +103,7 @@ def print_resp(resp, mode):
                 content = hit['_source']['content']
                 line_number = hit['_source']['line_number']
                 line_score = hit['_score']
-                print(f"Line {line_number}, Score: {line_score}: {content.strip()}")
+                print(f"Line {line_number}, Score: {line_score}, Content: {content.strip()}")
         else:
             print("No relevant lines found!")
 
@@ -145,7 +138,6 @@ def knn_search(idx_name, query_embedding):
 def index_file_lines(file_path, idx_name):
     with open(file_path, 'r', encoding='utf-8') as f:
         code_content = f.read()
-        function_names, class_names = extract_metadata(code_content)
 
         # Index each line separately with metadata
         lines = code_content.split('\n')
@@ -178,8 +170,6 @@ def index_file_lines(file_path, idx_name):
             doc = {
                 "content": line.strip(),
                 "file_path": file_path,
-                "function_name": function_names if function_names else None,
-                "class_name": class_names if class_names else None,
                 "line_number": i + 1,
                 "embedding": embedding
             }
@@ -189,12 +179,6 @@ def index_file_lines(file_path, idx_name):
             # print("Length of embedding: ", len(embedding))
 
             es_client.index(index=idx_name, body=doc)
-
-# Regex to extract function and class names
-def extract_metadata(code_content):
-    function_names = re.findall(r"def ([\w_]+)\(", code_content)
-    class_names = re.findall(r"class ([\w_]+)\(", code_content)
-    return function_names, class_names
 
 resp = similarity_search(index_name, search_embedding)
 print("\nResult of vector search based on similarity:")

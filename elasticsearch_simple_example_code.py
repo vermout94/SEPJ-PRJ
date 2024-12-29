@@ -60,6 +60,9 @@ print("Indices in database: ", list(es_client.indices.get(index="*").keys()))
 resp = es_client.count(index="codebase_index")
 print("Number of indexed documents in codebase: " + str(resp["count"]))
 
+resp = es_client.count(index="codebase_lines_index")
+print("Number of indexed lines in codebase: " + str(resp["count"]))
+
 # standard query for full text search
 
 # resp = es_client.search(index="codebase_index", body={"query": {"match": {"content":"x+y"}}})

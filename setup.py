@@ -11,6 +11,7 @@ ES_VERSION = "8.15.3"
 ES_PORT = 9200
 ES_HOST = f"https://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
+LINES_INDEX_NAME = "codebase_lines_index"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
 MAPPING_FILE = "custom_mapping.json"
 ELASTIC_PASSWORD = os.getenv('ES_PASSWORD') #"password"
@@ -124,7 +125,8 @@ def main():
     install_python_dependencies()
     es = connect_to_elasticsearch()
     create_custom_mapping(es, INDEX_NAME)
-    create_custom_mapping(es, "tmp_idx")
+    create_custom_mapping(es, LINES_INDEX_NAME)
+    #create_custom_mapping(es, "tmp_idx") # creating temporary index for searching lines
     print("Setup completed.")
 
 if __name__ == "__main__":

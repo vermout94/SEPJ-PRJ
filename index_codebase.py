@@ -10,6 +10,7 @@ import torch
 # Initializing Elasticsearch
 
 index_name = "codebase_index"
+lines_index_name = "codebase_lines_index"
 device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
 es_user = os.getenv('ES_USERNAME', 'elastic')
 es_password = os.getenv('ES_PASSWORD', 'password')
@@ -51,7 +52,7 @@ def extract_metadata(code_content):
     class_names = re.findall(r"class ([\w_]+)\(", code_content)
     return function_names, class_names
 
-def get_embedding(text):
+def get_embedding(text): # Tokenize and generate outputs
     inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True).to(device)
     with torch.no_grad():
         outputs = model(**inputs)
@@ -60,35 +61,70 @@ def get_embedding(text):
         embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()  # Average across tokens
     return embedding
 
-def create_doc_for_indexing(file_path, file_hash):
+def indexing_by_file(file_path, file_hash, doc_id, idx_name, mode):
     with open(file_path, 'r', encoding='utf-8') as f:
         code_content = f.read()
         function_names, class_names = extract_metadata(code_content)
-        # lines = code_content.split('\n')
-        # print(code_content)
-        lines = code_content.strip()
-        # print(lines)
-
+        code_content = code_content.strip()
         # Get embedding
-        embedding = get_embedding(lines)
+        embedding = get_embedding(code_content)
 
-        # Confirm embedding dimensions are as expected (e.g., 768)
-        # print("Embedding dimensions:", len(embedding))
+        # print("Embedding dimensions:", len(embedding)) # Confirm embedding dimensions are as expected (e.g., 768)
 
         # Create document for Elasticsearch
         doc = {
-            "content": lines,  # add hashing to lines = full doc content
+            "content": code_content,  # add hashing to lines = full doc content
             "file_path": file_path,
             "file_hash": file_hash,
             "function_name": function_names if function_names else None,
             "class_name": class_names if class_names else None,
-            "code_len": len(lines),
+            "code_len": len(code_content),
             "embedding": embedding
         }
 
-        return doc
+        # Index new document or update existing document
+        if mode == "create":
+            es.create(index=idx_name, id=doc_id, document=doc)
+        elif mode == "update":
+            es.update(index=idx_name, id=doc_id, doc=doc)
 
-def check_for_deleted(file_list):
+def indexing_by_line(file_path, idx_name):
+    es.delete_by_query(
+        index=idx_name,
+        query={ "term": {"file_path.keyword": file_path} }
+    )
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        code_content = f.read()
+
+        print("Indexing lines...")
+        # Index each line separately
+        lines = code_content.split('\n')
+
+        for i, line in enumerate(lines):
+            # Skip empty lines to avoid unnecessary processing
+            if not line.strip():
+                continue
+
+            embedding = get_embedding(line)
+
+            line_number = i + 1
+
+            # Create document for Elasticsearch with the extracted embedding
+            doc = {
+                "content": line.strip(),
+                "file_path": file_path,
+                "line_number": line_number,
+                "embedding": embedding
+            }
+
+            # Index a new document for each line
+            es.index(index=idx_name, body=doc)
+
+        print("Number of indexed lines: ", line_number)
+
+
+def check_for_deleted_files(file_list):
     print("======================")
     print("Checking if files have been deleted...")
 
@@ -127,6 +163,21 @@ def check_for_deleted(file_list):
 
         print("Number of files deleted from index:", delete_response['deleted'])
 
+        print("Deleting lines from index...")
+        delete_response = es.delete_by_query(
+            index=lines_index_name,
+            query={"bool": {
+                "must_not": [{
+                    "terms": {
+                        "file_path.keyword": file_list
+                    }
+                }]
+            }
+            }
+        )
+
+        print("Number of lines deleted from index:", delete_response['deleted'])
+
 # Function to index codebase files
 
 def index_codebase():
@@ -160,23 +211,23 @@ def index_codebase():
                     else:
                         print(f"Hash value is different - updating index for existing document...")
 
-                        doc = create_doc_for_indexing(file_path, file_hash)
-
                         # Update existing document in Elasticsearch
-                        es.update(index=index_name, id=doc_id, doc=doc)
+                        indexing_by_file(file_path, file_hash, doc_id, index_name, "update")
+                        # Indexing lines of the file in a separate index
+                        indexing_by_line(file_path, lines_index_name)
                         print(f"Document updated successfully.")
 
                 else:
 
                     print(f"No document for this file in index yet - creating a new document...")
 
-                    doc = create_doc_for_indexing(file_path, file_hash)
-
                     # Index new document in Elasticsearch
-                    es.index(index=index_name, id=doc_id, document=doc)
+                    indexing_by_file(file_path, file_hash, doc_id, index_name, "create")
+                    # Indexing lines of the file in a separate index
+                    indexing_by_line(file_path, lines_index_name)
                     print(f"Document indexed successfully.")
 
-    check_for_deleted(codebase_file_list)
+    check_for_deleted_files(codebase_file_list)
 
 
 # Running the indexing process
@@ -188,6 +239,9 @@ if __name__ == "__main__":
         time.sleep(3) # make sure that index is up-to-date before counting
         resp = es.count(index=index_name)
         print("\n======================")
-        print("Number of indexed documents in codebase: " + str(resp["count"]))
+        print("Number of indexed documents from codebase: " + str(resp["count"]))
+        resp = es.count(index=lines_index_name)
+        print("\n======================")
+        print("Number of indexed lines from codebase: " + str(resp["count"]))
     except Exception as e:
         print(f"Error during indexing: {e}")
