@@ -61,7 +61,10 @@ es_client = Elasticsearch(
     #verify_certs=False
 )
 
-search_embedding = get_query_embedding("braking the tram")
+print("Please type in what you are searching:")
+search_input = input()
+
+search_embedding = get_query_embedding(search_input)
 
 # print(type(search_embedding))
 # print("Length of embedding to search for: ", len(search_embedding))
@@ -75,7 +78,7 @@ search_embedding = get_query_embedding("braking the tram")
 # search_embedding_str_as_vector = search_embedding_str[1:search_embedding_str_length-1]
 # print(search_embedding)
 
-def print_resp(resp, mode):
+def print_resp(resp, lines_search_mode):
 
     #print("Type of response: ", type(resp))
     print("Number of hits: ", len(resp['hits']['hits']) )
@@ -84,7 +87,7 @@ def print_resp(resp, mode):
 
     for hit in response_json['hits']['hits']:
         file_path = hit['_source']['file_path']
-        file_name = file_path.split("\\")[-1]
+
         file_score = hit['_score']
         print("==================")
         print(f"File: {file_path}, Score: {file_score}")
@@ -92,9 +95,9 @@ def print_resp(resp, mode):
         #index_file_lines(file_path, tmp_index_name)
 
         # searching lines of each file
-        if mode == "similarity":
+        if lines_search_mode == "similarity":
             line_search_resp = lines_similarity_search(lines_index_name, file_path, search_embedding)
-        elif mode == "knn":
+        elif lines_search_mode == "knn":
             line_search_resp = lines_knn_search(lines_index_name, file_path, search_embedding)
         else:
             print("Unknown mode!")
@@ -104,6 +107,8 @@ def print_resp(resp, mode):
             print("Most Relevant Lines:")
             for hit in line_search_resp['hits']['hits']:
                 content = hit['_source']['content']
+                file_path = hit['_source']['file_path']
+                file_name = file_path.split("\\")[-1]
                 line_number = hit['_source']['line_number']
                 line_score = hit['_score']
                 print(f"{file_name}, Line {line_number}, Score: {line_score}, Content: {content.strip()}")
@@ -149,23 +154,45 @@ def lines_similarity_search(idx_name, file_path, query_embedding):
 
 # vector search based on k nearest neighbours of indexed embedding vectors
 def knn_search(idx_name, query_embedding):
-    return es_client.search(index=idx_name, knn= {"field": "embedding",
-                                                  "query_vector": query_embedding,
-                                                  "k": 3,
-                                                  "num_candidates": 3
-                                                 })
+    return es_client.search(index=idx_name,
+                            body={
+                                "knn": {
+                                    "field": "embedding",  # The dense vector field
+                                    "query_vector": query_embedding,  # Your query embedding
+                                    "k": 3,  # Number of nearest neighbors to retrieve
+                                    "num_candidates": 3  # Number of candidates to consider for kNN
+                                },
+                                "query": {
+                                    "bool": {
+                                        "should": [
+                                            # Full-text search on the content field
+                                            {
+                                                "match": {
+                                                    "content": search_input  # The text you're searching for
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                            )
+    # return es_client.search(index=idx_name, knn= {"field": "embedding",
+    #                                               "query_vector": query_embedding,
+    #                                               "k": 3,
+    #                                               "num_candidates": 3
+    #                                              })
 
 def lines_knn_search(idx_name, file_path, query_embedding):
     return es_client.search(index=idx_name, knn= {"field": "embedding",
                                                   "query_vector": query_embedding,
                                                   "k": 3,
                                                   "num_candidates": 3,
-                                                  "filter" : [ {"match": {"file_path": file_path}} ]
+                                                  "filter" : [ {"term": {"file_path.keyword": file_path}} ]
                                                  })
 
-resp = similarity_search(index_name, search_embedding)
-print("\nResult of vector search based on similarity:")
-print_resp(resp, "similarity")
+# resp = similarity_search(index_name, search_embedding)
+# print("\nResult of vector search based on similarity:")
+# print_resp(resp, "similarity")
 
 resp = knn_search(index_name, search_embedding)
 print("\nResult of vector search based on knn:")

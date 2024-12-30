@@ -31,7 +31,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
 
 # Path to codebase
-codebase_directory = os.path.abspath("./test_files/")
+codebase_directory = os.path.abspath("./test_files/") #"./test_files/"
 
 # Compute the hash of a file's content
 def compute_file_hash(file_path):

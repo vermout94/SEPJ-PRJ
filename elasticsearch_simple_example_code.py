@@ -82,6 +82,20 @@ print("Number of indexed lines in codebase: " + str(resp["count"]))
 # !!! DELETE INDEX !!!
 
 #es_client.indices.delete(index="codebase_index")
+#es_client.indices.delete(index="codebase_lines_index")
+
+######################
+# !!! DELETE ALL DOCUMENTS OF INDEX !!!
+#
+# es_client.delete_by_query(
+#     index="codebase_index",
+#     query={"match_all": {}}
+# )
+#
+# es_client.delete_by_query(
+#     index="codebase_lines_index",
+#     query={"match_all": {}}
+# )
 
 # client.indices.refresh(index="test-index")
 #
