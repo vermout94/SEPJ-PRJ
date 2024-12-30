@@ -17,7 +17,7 @@ es_password = os.getenv('ES_PASSWORD', 'password')
 es = Elasticsearch(
     hosts=["https://localhost:9200"],
     basic_auth=(es_user, es_password),
-    ca_certs=r".\http_ca.crt"
+    verify_certs=False
 )
 
 # Loading the Hugging Face model you want to use
@@ -179,7 +179,6 @@ def check_for_deleted_files(file_list):
         print("Number of lines deleted from index:", delete_response['deleted'])
 
 # Function to index codebase files
-
 def index_codebase():
     codebase_file_list = list()
     for root, dirs, files in os.walk(codebase_directory):
@@ -239,7 +238,7 @@ if __name__ == "__main__":
         time.sleep(3) # make sure that index is up-to-date before counting
         resp = es.count(index=index_name)
         print("\n======================")
-        print("Number of indexed documents from codebase: " + str(resp["count"]))
+        print("Number of indexed files from codebase: " + str(resp["count"]))
         resp = es.count(index=lines_index_name)
         print("\n======================")
         print("Number of indexed lines from codebase: " + str(resp["count"]))
