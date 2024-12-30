@@ -12,7 +12,7 @@
             },
             "embedding": {
                 "type": "dense_vector",
-                "dims": 2048
+                "dims": 768
             },
             "file_path": {
                 "type": "text",

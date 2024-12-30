@@ -18,10 +18,10 @@ es = Elasticsearch(
 )
 
 # Loading the Hugging Face model you want to use
-# model_name = "BAAI/bge-base-en-v1.5"
+model_name = "BAAI/bge-base-en-v1.5"
 # model_name = "Qwen/Qwen2.5-Coder-0.5B"
 #model_name = "microsoft/graphcodebert-base"
-model_name = "EleutherAI/gpt-neo-1.3B"
+#model_name = "EleutherAI/gpt-neo-1.3B"
 # model_name = "deepseek-ai/DeepSeek-Coder-V2-Lite-Base"
 # model_name = "meta-llama/CodeLlama-7b-hf"
 # model_name = "codellama/CodeLlama-7b-hf"
@@ -52,7 +52,7 @@ def extract_metadata(code_content):
     return function_names, class_names
 
 def get_embedding(text):
-    inputs = tokenizer(text, return_tensors="pt", max_length=1024, truncation=True).to(device)
+    inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True).to(device)
     with torch.no_grad():
         outputs = model(**inputs)
         # Use hidden states and apply mean pooling

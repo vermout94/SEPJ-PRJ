@@ -15,8 +15,8 @@ es = Elasticsearch(
 )
 
 # Load the model for embedding extraction
-#model_name = "BAAI/bge-base-en-v1.5"
-model_name = "EleutherAI/gpt-neo-1.3B"
+model_name = "BAAI/bge-base-en-v1.5"
+#model_name = "EleutherAI/gpt-neo-1.3B"
 # model_name = "Qwen/Qwen2.5-Coder-0.5B"
 # model_name = "deepseek-ai/DeepSeek-Coder-V2-Lite-Base"
 # model_name = "meta-llama/CodeLlama-7b-hf"
@@ -28,7 +28,7 @@ model = AutoModel.from_pretrained(model_name).to(device)  # Use AutoModel, not A
 
 # Function to get query embedding
 def get_query_embedding(query):
-    inputs = tokenizer(query, return_tensors="pt", truncation=True, max_length=1024).to(device)
+    inputs = tokenizer(query, return_tensors="pt", truncation=True, max_length=512).to(device)
     with torch.no_grad():
         outputs = model(**inputs)
         hidden_states = outputs.last_hidden_state  # Use hidden states
