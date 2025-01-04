@@ -60,8 +60,52 @@ print("Indices in database: ", list(es_client.indices.get(index="*").keys()))
 resp = es_client.count(index="codebase_index")
 print("Number of indexed documents in codebase: " + str(resp["count"]))
 
+resp = es_client.search(index="codebase_index", query={"match_all": {}})
+print("Got {} hits:".format(resp["hits"]["total"]["value"]))
+for hit in resp["hits"]["hits"]:
+    file_path = hit['_source']['file_path']
+    #print(file_path)
+    file_name = file_path.split("\\")[-1]
+    print(file_name, ": ", hit["_source"]["function_name"])
+    print(file_name, ": ", hit["_source"]["class_name"])
+
 resp = es_client.count(index="codebase_lines_index")
 print("Number of indexed lines in codebase: " + str(resp["count"]))
+
+# resp = es_client.search(index="codebase_lines_index",
+#                         query={ "match_all": {}})
+
+# resp = es_client.search(index="codebase_lines_index",
+#                         query={
+#                                 "term": {
+#                                     "function_name.keyword": "brake"
+#                                 }
+#                             })
+
+resp = es_client.search(index="codebase_lines_index",
+                        query={
+                                "match": {
+                                    "content": "Car"
+                                }
+                            })
+
+print("Got {} hits:".format(resp["hits"]["total"]["value"]))
+i=0
+for hit in resp["hits"]["hits"]:
+    file_path = hit['_source']['file_path']
+    file_name = file_path.split("\\")[-1]
+    line_number = hit['_source']['line_number']
+    print(file_name, "Line ", line_number, "| content:", hit["_source"]["content"], "| function_name:", hit["_source"]["function_name"], "| class_name:", hit["_source"]["class_name"])
+    # i = i +1
+    # if i == 100:
+    #     break
+#
+# hit = resp["hits"]["hits"][1000]
+# file_path = hit['_source']['file_path']
+# file_name = file_path.split("\\")[-1]
+# line_number = hit['_source']['line_number']
+#
+# print(file_name, "Line ", line_number,  "| function_name:", hit["_source"]["function_name"], "| class_name:", hit["_source"]["class_name"])
 
 # standard query for full text search
 
@@ -80,9 +124,9 @@ print("Number of indexed lines in codebase: " + str(resp["count"]))
 
 ######################
 # !!! DELETE INDEX !!!
-
-#es_client.indices.delete(index="codebase_index")
-#es_client.indices.delete(index="codebase_lines_index")
+#
+# es_client.indices.delete(index="codebase_index")
+# es_client.indices.delete(index="codebase_lines_index")
 
 ######################
 # !!! DELETE ALL DOCUMENTS OF INDEX !!!

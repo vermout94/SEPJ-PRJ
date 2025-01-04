@@ -61,24 +61,7 @@ es_client = Elasticsearch(
     #verify_certs=False
 )
 
-print("Please type in what you are searching:")
-search_input = input()
-
-search_embedding = get_query_embedding(search_input)
-
-# print(type(search_embedding))
-# print("Length of embedding to search for: ", len(search_embedding))
-# search_embedding_str = str(search_embedding[0])
-# search_embedding_str_length = len(search_embedding_str)
-# print(search_embedding_str_length)
-# print(search_embedding_str[1:50])
-# print(search_embedding_str[-50:query_embedding_str_length-1])
-# print(search_embedding_str[:50])
-# print(search_embedding_str[-50:])
-# search_embedding_str_as_vector = search_embedding_str[1:search_embedding_str_length-1]
-# print(search_embedding)
-
-def print_resp(resp, lines_search_mode):
+def print_resp(resp, search_embedding, lines_search_mode):
 
     #print("Type of response: ", type(resp))
     print("Number of hits: ", len(resp['hits']['hits']) )
@@ -103,19 +86,22 @@ def print_resp(resp, lines_search_mode):
             print("Unknown mode!")
             return
 
-        if line_search_resp['hits']['total']['value'] > 0:
-            print("Most Relevant Lines:")
-            for hit in line_search_resp['hits']['hits']:
-                content = hit['_source']['content']
-                file_path = hit['_source']['file_path']
-                file_name = file_path.split("\\")[-1]
-                line_number = hit['_source']['line_number']
-                line_score = hit['_score']
-                print(f"{file_name}, Line {line_number}, Score: {line_score}, Content: {content.strip()}")
-        else:
-            print("No relevant lines found!")
+        print_line_search_resp(line_search_resp)
 
         #es_client.indices.delete(index=tmp_index_name)
+
+def print_line_search_resp(line_search_resp):
+    if line_search_resp['hits']['total']['value'] > 0:
+        print("Most Relevant Lines:")
+        for hit in line_search_resp['hits']['hits']:
+            content = hit['_source']['content']
+            file_path = hit['_source']['file_path']
+            file_name = file_path.split("\\")[-1]
+            line_number = hit['_source']['line_number']
+            line_score = hit['_score']
+            print(f"{file_name}, Line {line_number}, Score: {line_score}, Content: {content.strip()}")
+    else:
+        print("No relevant lines found!")
 
 # vector search based on similarity of indexed embedding vectors
 def similarity_search(idx_name, query_embedding):
@@ -153,7 +139,7 @@ def lines_similarity_search(idx_name, file_path, query_embedding):
                                                          })
 
 # vector search based on k nearest neighbours of indexed embedding vectors
-def knn_search(idx_name, query_embedding):
+def knn_combined_search(idx_name, query_embedding, search_input):
     return es_client.search(index=idx_name,
                             body={
                                 "knn": {
@@ -173,9 +159,31 @@ def knn_search(idx_name, query_embedding):
                                             }
                                         ]
                                     }
-                                }
+                                },
+                                "size": 3
                             }
                             )
+
+def knn_field_search(idx_name, field_name, search_input):
+    return es_client.search(index=idx_name,
+                            body={
+                                "query": {
+                                    "bool": {
+                                        "should": [
+                                            # Full-text search on the function field
+                                            {
+                                                "match": {
+                                                    field_name: search_input
+                                                #"function_name": search_input  # The text you're searching for
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                "size": 3
+                            }
+                            )
+
     # return es_client.search(index=idx_name, knn= {"field": "embedding",
     #                                               "query_vector": query_embedding,
     #                                               "k": 3,
@@ -194,19 +202,50 @@ def lines_knn_search(idx_name, file_path, query_embedding):
 # print("\nResult of vector search based on similarity:")
 # print_resp(resp, "similarity")
 
-resp = knn_search(index_name, search_embedding)
-print("\nResult of vector search based on knn:")
-print_resp(resp, "knn")
+# resp = knn_search(index_name, search_embedding)
+# print("\nResult of vector search based on knn:")
+# print_resp(resp, "knn")
+
+def main():
+    print("\nWelcome to SmartSearch Version 1.0!")
+
+    search_input = None
+
+    while search_input != "q":
+
+        print("\nPlease type in what you are searching: \n[Enter 'q' to quit]")
+
+        search_input = input()
+
+        if search_input == "q":
+            continue
+
+        resp = knn_field_search(lines_index_name, "function_name",search_input)
+        print("\nResult of function search:")
+        print_line_search_resp(resp)
+
+        resp = knn_field_search(lines_index_name, "class_name", search_input)
+        print("\nResult of class search:")
+        print_line_search_resp(resp)
+
+        #search_embedding = get_query_embedding(search_input)
+
+        #resp = knn_combined_search(index_name, search_embedding, search_input)
+        # print("\nResult of vector search based on knn:")
+        # print_resp(resp, search_embedding, "knn")
 
 
-
-
-
-
-
-
-
-
+# print(type(search_embedding))
+# print("Length of embedding to search for: ", len(search_embedding))
+# search_embedding_str = str(search_embedding[0])
+# search_embedding_str_length = len(search_embedding_str)
+# print(search_embedding_str_length)
+# print(search_embedding_str[1:50])
+# print(search_embedding_str[-50:query_embedding_str_length-1])
+# print(search_embedding_str[:50])
+# print(search_embedding_str[-50:])
+# search_embedding_str_as_vector = search_embedding_str[1:search_embedding_str_length-1]
+# print(search_embedding)
 
 
 # def index_file_lines(file_path, idx_name):
@@ -252,3 +291,6 @@ print_resp(resp, "knn")
 #             # print("Indexing file: ", file_path + ' | line: ' + str(i))
 #             # print("Length of embedding: ", len(embedding))
 #             es_client.index(index=idx_name, body=doc)
+
+if __name__ == "__main__":
+    main()

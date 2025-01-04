@@ -32,6 +32,15 @@
                     }
                 }
             },
+            "class_name": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
+            },
             "line_number": {
                 "type": "long"
             },
