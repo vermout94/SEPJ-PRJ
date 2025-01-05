@@ -16,7 +16,7 @@ device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if 
 es_user = os.getenv('ES_USERNAME', 'elastic')
 es_password = os.getenv('ES_PASSWORD', 'password')
 es = Elasticsearch(
-    hosts=["https://localhost:9200"],
+    hosts=["http://localhost:9200"],
     basic_auth=(es_user, es_password),
     #ca_certs=r".\http_ca.crt",
     verify_certs=False
@@ -244,6 +244,13 @@ if __name__ == "__main__":
         # Path to codebase
 
         codebase_directory = sys.argv[1]
+
+        #check if path exists and is a directory
+        if not os.path.exists(codebase_directory):
+            raise ValueError(f"Directory does not exist: {codebase_directory}")
+        if not os.path.isdir(codebase_directory):
+            raise ValueError(f"Path is not a directory: {codebase_directory}")
+
         codebase_directory = os.path.abspath(codebase_directory)
         #os.path.abspath("./test_files/")
 

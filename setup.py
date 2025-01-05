@@ -9,12 +9,12 @@ from elasticsearch import Elasticsearch
 # Configuration
 ES_VERSION = "8.15.3"
 ES_PORT = 9200
-ES_HOST = f"https://localhost:{ES_PORT}"
+ES_HOST = f"http://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
 LINES_INDEX_NAME = "codebase_lines_index"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
 MAPPING_FILE = "custom_mapping.json"
-ELASTIC_PASSWORD = os.getenv('ES_PASSWORD') #"password"
+ELASTIC_PASSWORD = "password"
 
 # Check platform
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -85,10 +85,10 @@ def connect_to_elasticsearch():
     print("Trying to connect to Elasticsearch server...")
     for attempt in range(20):
         try:
+            print(f"Password retrieved: {ELASTIC_PASSWORD}")
             es = Elasticsearch(
                 [ES_HOST],
-                basic_auth=("elastic", ELASTIC_PASSWORD),
-                verify_certs=False
+                basic_auth=("elastic", ELASTIC_PASSWORD)
             )
             if es.ping():
                 print("Connected to Elasticsearch")
