@@ -102,26 +102,20 @@ def knn_combined_search(idx_name, query_embedding, search_input):
                             )
 
 def lines_knn_function_search(idx_name, query_embedding):
-    return es_client.search(index=idx_name,
-                            body={"size": 3,
-                                "knn": {
-                                    "field": "embedding",
-                                    "query_vector": query_embedding,
-                                    "k": 3,
-                                    "num_candidates": 3
-                                },
-                                "query": {
-                                    "bool": {
-                                        "must_not": [
-                                            {
-                                                "term": {
-                                                    "function_name.keyword": "None"
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            })
+    return es_client.search(index=idx_name, knn={"field": "embedding",
+                                                 "query_vector": query_embedding,
+                                                 "k": 3,
+                                                 "num_candidates": 3,
+                                                 "filter": [{"term": {"function_name.keyword": "function"}}]
+                                                 })
+
+def lines_knn_class_search(idx_name, query_embedding):
+    return es_client.search(index=idx_name, knn={"field": "embedding",
+                                                 "query_vector": query_embedding,
+                                                 "k": 3,
+                                                 "num_candidates": 3,
+                                                 "filter": [{"term": {"class_name.keyword": "class"}}]
+                                                 })
 
 def lines_knn_search(idx_name, file_path, query_embedding):
     return es_client.search(index=idx_name, knn= {"field": "embedding",
@@ -132,17 +126,18 @@ def lines_knn_search(idx_name, file_path, query_embedding):
                                                  })
 
 def search_codebase(search_input, search_type):
+
+    search_embedding = get_query_embedding(search_input)
+
     if search_type == "content":
-        search_embedding = get_query_embedding(search_input)
         resp = knn_combined_search(index_name, search_embedding, search_input)
         print("\nResult of content search:")
         print_resp(resp, search_embedding, "knn")
-    # elif search_type == "function":
-    #     search_embedding = get_query_embedding(search_input)
-    #     resp = lines_knn_function_search(lines_index_name, search_embedding)
-    #     print("\nResult of function search:")
-    #     print_line_search_resp(resp, True)
-    # elif search_type == "class":
-    #     resp = knn_field_search(lines_index_name, "class_name", search_input)
-    #     print("\nResult of class search:")
-    #     print_line_search_resp(resp, True)
+    elif search_type == "function":
+        resp = lines_knn_function_search(lines_index_name, search_embedding)
+        print("\nResult of function search:")
+        print_line_search_resp(resp, True)
+    elif search_type == "class":
+        resp = lines_knn_class_search(lines_index_name, search_embedding)
+        print("\nResult of class search:")
+        print_line_search_resp(resp, True)

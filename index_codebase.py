@@ -107,8 +107,8 @@ def indexing_by_line(file_path, idx_name):
                 continue
 
             function_names, class_names = extract_metadata(line)
-            function_name = function_names[0] if function_names else None
-            class_name = class_names[0] if class_names else None
+            function_name = "function" if function_names else None
+            class_name = "class" if class_names else None
 
             embedding = get_embedding(line)
 
