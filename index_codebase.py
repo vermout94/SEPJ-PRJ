@@ -17,7 +17,8 @@ es_password = os.getenv('ES_PASSWORD', 'password')
 es = Elasticsearch(
     hosts=["https://localhost:9200"],
     basic_auth=(es_user, es_password),
-    verify_certs=False
+    ca_certs=r".\http_ca.crt",
+    #verify_certs=False
 )
 
 # Loading the Hugging Face model you want to use
@@ -47,13 +48,10 @@ def compute_doc_id(file_path):
     return hashlib.md5(unique_id).hexdigest()
 
 # Regex to extract function and class names
-def extract_function_names(code_content):
+def extract_metadata(code_content):
     function_names = re.findall(r"def ([\w_]+)\(", code_content)
-    return function_names
-
-def extract_class_names(code_content):
-    class_names = re.findall(r"class ([\w_]+)\(", code_content)
-    return class_names
+    class_names = re.findall(r"class ([\w_]+):", code_content)
+    return function_names, class_names
 
 def get_embedding(text): # Tokenize and generate outputs
     inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True).to(device)
@@ -67,8 +65,7 @@ def get_embedding(text): # Tokenize and generate outputs
 def indexing_by_file(file_path, file_hash, doc_id, idx_name, mode):
     with open(file_path, 'r', encoding='utf-8') as f:
         code_content = f.read()
-        function_names = extract_function_names(code_content)
-        class_names = extract_class_names(code_content)
+        function_names, class_names = extract_metadata(code_content)
         code_content = code_content.strip()
         # Get embedding
         embedding = get_embedding(code_content)
@@ -110,8 +107,7 @@ def indexing_by_line(file_path, idx_name):
             if not line.strip():
                 continue
 
-            function_names = extract_function_names(line)
-            class_names = extract_class_names(line)
+            function_names, class_names = extract_metadata(line)
             function_name = function_names[0] if function_names else None
             class_name = class_names[0] if class_names else None
 

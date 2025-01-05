@@ -1,69 +1,7 @@
-import platform
-import os
-import re
-
-import subprocess
-import sys
-
-from sympy.strategies.core import switch
-# def install(package):
-#     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-#
-# install("transformers")
-# install("torch")
-
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import torch
-from elasticsearch import Elasticsearch
-
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-
-# Loading the Hugging Face model
-model_name = "BAAI/bge-base-en-v1.5" #"Qwen/Qwen2.5-Coder-0.5B" #"BAAI/bge-base-en-v1.5"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
-
-def get_query_embedding(query):
-    inputs = tokenizer(query, return_tensors="pt").to(device)
-    with torch.no_grad(): # no_grad() --> Disabling gradient calculation is useful for inference, when you are sure that you will not call Tensor.backward().
-                          # It will reduce memory consumption for computations that would otherwise have requires_grad=True.
-        outputs = model(**inputs)
-
-        hidden_states = outputs.hidden_states[-1]  # Get the last layer hidden
-        embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()
-
-        del outputs
-
-        if platform.system()=='Windows':
-
-            torch.cuda.empty_cache()
-
-        if platform.system()=='Darwin': # Darwin --> Mac
-                                          # https://stackoverflow.com/questions/1854/how-to-identify-which-os-python-is-running-on
-
-            torch.mps.empty_cache() # "mps" refers to "Metal Performance Shaders" which are available for Mac (Apple)
-                                    # --> see: https://developer.apple.com/metal/pytorch/
-        return embedding
-
-
-es_user = 'elastic' #os.getenv('ES_USERNAME')
-es_password = os.getenv('ES_PASSWORD') #'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
-es_host = "http://localhost:9200"
-index_name = "codebase_index"
-lines_index_name = "codebase_lines_index"
-#tmp_index_name = "tmp_idx"
-MAPPING_FILE = "custom_mapping.json"  # Mapping file
-
-es_client = Elasticsearch(
-    "https://localhost:9200",
-    basic_auth=(es_user, es_password),
-    ca_certs=r".\http_ca.crt"
-    #verify_certs=False
-)
+from index_codebase import get_embedding as get_query_embedding, es as es_client, index_name, lines_index_name
 
 def print_resp(resp, search_embedding, lines_search_mode):
 
-    #print("Type of response: ", type(resp))
     print("Number of hits: ", len(resp['hits']['hits']) )
 
     response_json = resp
@@ -74,8 +12,6 @@ def print_resp(resp, search_embedding, lines_search_mode):
         file_score = hit['_score']
         print("==================")
         print(f"File: {file_path}, Score: {file_score}")
-
-        #index_file_lines(file_path, tmp_index_name)
 
         # searching lines of each file
         if lines_search_mode == "similarity":
@@ -88,9 +24,7 @@ def print_resp(resp, search_embedding, lines_search_mode):
 
         print_line_search_resp(line_search_resp)
 
-        #es_client.indices.delete(index=tmp_index_name)
-
-def print_line_search_resp(line_search_resp):
+def print_line_search_resp(line_search_resp, print_file_path=False):
     if line_search_resp['hits']['total']['value'] > 0:
         print("Most Relevant Lines:")
         for hit in line_search_resp['hits']['hits']:
@@ -99,7 +33,9 @@ def print_line_search_resp(line_search_resp):
             file_name = file_path.split("\\")[-1]
             line_number = hit['_source']['line_number']
             line_score = hit['_score']
-            print(f"{file_name}, Line {line_number}, Score: {line_score}, Content: {content.strip()}")
+            if print_file_path:
+                print("File: ", file_path)
+            print(f"Line {line_number}, Score: {line_score}, Content: {content.strip()}")
     else:
         print("No relevant lines found!")
 
@@ -126,7 +62,7 @@ def lines_similarity_search(idx_name, file_path, query_embedding):
                                                     "query": {
                                                                "script_score": {
                                                                   "query": {
-                                                                    "match": {"file_path": file_path}
+                                                                    "term": {"file_path.keyword": file_path}
                                                                   },
                                                                   "script": {
                                                                     "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
@@ -138,7 +74,7 @@ def lines_similarity_search(idx_name, file_path, query_embedding):
                                                             }
                                                          })
 
-# vector search based on k nearest neighbours of indexed embedding vectors
+# vector search based on k nearest neighbours of indexed embedding vectors combined with full-text search
 def knn_combined_search(idx_name, query_embedding, search_input):
     return es_client.search(index=idx_name,
                             body={
@@ -184,12 +120,6 @@ def knn_field_search(idx_name, field_name, search_input):
                             }
                             )
 
-    # return es_client.search(index=idx_name, knn= {"field": "embedding",
-    #                                               "query_vector": query_embedding,
-    #                                               "k": 3,
-    #                                               "num_candidates": 3
-    #                                              })
-
 def lines_knn_search(idx_name, file_path, query_embedding):
     return es_client.search(index=idx_name, knn= {"field": "embedding",
                                                   "query_vector": query_embedding,
@@ -198,99 +128,17 @@ def lines_knn_search(idx_name, file_path, query_embedding):
                                                   "filter" : [ {"term": {"file_path.keyword": file_path}} ]
                                                  })
 
-# resp = similarity_search(index_name, search_embedding)
-# print("\nResult of vector search based on similarity:")
-# print_resp(resp, "similarity")
-
-# resp = knn_search(index_name, search_embedding)
-# print("\nResult of vector search based on knn:")
-# print_resp(resp, "knn")
-
-def main():
-    print("\nWelcome to SmartSearch Version 1.0!")
-
-    search_input = None
-
-    while search_input != "q":
-
-        print("\nPlease type in what you are searching: \n[Enter 'q' to quit]")
-
-        search_input = input()
-
-        if search_input == "q":
-            continue
-
+def search_codebase(search_input, search_type):
+    if search_type == "content":
+        search_embedding = get_query_embedding(search_input)
+        resp = knn_combined_search(index_name, search_embedding, search_input)
+        print("\nResult of content search:")
+        print_resp(resp, search_embedding, "knn")
+    elif search_type == "function":
         resp = knn_field_search(lines_index_name, "function_name",search_input)
         print("\nResult of function search:")
-        print_line_search_resp(resp)
-
+        print_line_search_resp(resp, True)
+    elif search_type == "class":
         resp = knn_field_search(lines_index_name, "class_name", search_input)
         print("\nResult of class search:")
-        print_line_search_resp(resp)
-
-        #search_embedding = get_query_embedding(search_input)
-
-        #resp = knn_combined_search(index_name, search_embedding, search_input)
-        # print("\nResult of vector search based on knn:")
-        # print_resp(resp, search_embedding, "knn")
-
-
-# print(type(search_embedding))
-# print("Length of embedding to search for: ", len(search_embedding))
-# search_embedding_str = str(search_embedding[0])
-# search_embedding_str_length = len(search_embedding_str)
-# print(search_embedding_str_length)
-# print(search_embedding_str[1:50])
-# print(search_embedding_str[-50:query_embedding_str_length-1])
-# print(search_embedding_str[:50])
-# print(search_embedding_str[-50:])
-# search_embedding_str_as_vector = search_embedding_str[1:search_embedding_str_length-1]
-# print(search_embedding)
-
-
-# def index_file_lines(file_path, idx_name):
-#     with open(file_path, 'r', encoding='utf-8') as f:
-#         code_content = f.read()
-#
-#         # Index each line separately with metadata
-#         lines = code_content.split('\n')
-#         for i, line in enumerate(lines):
-#             # Skip empty lines to avoid unnecessary processing
-#             if not line.strip():
-#                 continue
-#
-#             # Tokenize and generate outputs
-#             inputs = tokenizer(line, return_tensors="pt").to(device)
-#             with torch.no_grad(): # no_grad() --> Disabling gradient calculation is useful for inference, when you are sure that you will not call Tensor.backward().
-#                                   # It will reduce memory consumption for computations that would otherwise have requires_grad=True.
-#                 outputs = model(**inputs)
-#                 hidden_states = outputs.hidden_states[-1] # Get the last layer hidden
-#                 embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()
-#
-#                 del outputs
-#
-#                 if platform.system()=='Windows':
-#
-#                     torch.cuda.empty_cache()
-#
-#                 if platform.system()=='Darwin': # Darwin --> Mac
-#                                                   # https://stackoverflow.com/questions/1854/how-to-identify-which-os-python-is-running-on
-#
-#                     torch.mps.empty_cache() # "mps" refers to "Metal Performance Shaders" which are available for Mac (Apple)
-#                                             # --> see: https://developer.apple.com/metal/pytorch/
-#
-#             # Create document for Elasticsearch with the extracted embedding
-#             doc = {
-#                 "content": line.strip(),
-#                 "file_path": file_path,
-#                 "line_number": i + 1,
-#                 "embedding": embedding
-#             }
-#
-#             # Index document in Elasticsearch
-#             # print("Indexing file: ", file_path + ' | line: ' + str(i))
-#             # print("Length of embedding: ", len(embedding))
-#             es_client.index(index=idx_name, body=doc)
-
-if __name__ == "__main__":
-    main()
+        print_line_search_resp(resp, True)
