@@ -2,6 +2,7 @@ import hashlib
 import os
 import re
 import time
+import sys
 
 from elasticsearch import Elasticsearch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -17,8 +18,8 @@ es_password = os.getenv('ES_PASSWORD', 'password')
 es = Elasticsearch(
     hosts=["https://localhost:9200"],
     basic_auth=(es_user, es_password),
-    ca_certs=r".\http_ca.crt",
-    #verify_certs=False
+    #ca_certs=r".\http_ca.crt",
+    verify_certs=False
 )
 
 # Loading the Hugging Face model you want to use
@@ -31,8 +32,6 @@ model_name = "BAAI/bge-base-en-v1.5"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
 
-# Path to codebase
-codebase_directory = os.path.abspath("./test_files/") #"./test_files/"
 
 # Compute the hash of a file's content
 def compute_file_hash(file_path):
@@ -186,7 +185,7 @@ def check_for_deleted_files(file_list):
         print("Number of lines deleted from index:", delete_response['deleted'])
 
 # Function to index codebase files
-def index_codebase():
+def index_codebase(codebase_directory):
     codebase_file_list = list()
     for root, dirs, files in os.walk(codebase_directory):
         for file in files:
@@ -241,7 +240,14 @@ if __name__ == "__main__":
     try:
         if not es.ping():
             raise ValueError("Elasticsearch is not running or accessible.")
-        index_codebase()
+
+        # Path to codebase
+
+        codebase_directory = sys.argv[1]
+        codebase_directory = os.path.abspath(codebase_directory)
+        #os.path.abspath("./test_files/")
+
+        index_codebase(codebase_directory)
         time.sleep(3) # make sure that index is up-to-date before counting
         resp = es.count(index=index_name)
         print("\n======================")

@@ -7,21 +7,24 @@ def main():
     # Asking for search type and validate input
     search_type = None
     while search_type not in ['1', '2', '3', 'q']:
-        print("\nWhat do you want to search for?")
-        print("1. Content (e.g., keywords in code)")
-        print("2. Function Name")
-        print("3. Class Name")
+        print("\nWhat do you want to do?")
+        print("1. Search Content (e.g., keywords in code)")
+        # print("\nWhat do you want to search for?")
+        # print("1. Content (e.g., keywords in code)")
+        # print("2. Function Name")
+        # print("3. Class Name")
         #print("4. Use LLM")
         print("q to Quit")
 
-        search_type = input("Enter the number corresponding to your search type (1/2/3), or 'q' to quit: ")
+        #search_type = input("Enter the number corresponding to your search type (1/2/3), or 'q' to quit: ")
+        search_type = input("Enter (1) for performing your search or 'q' to quit: ")
 
         if search_type == '1':
             search_type = "content"
-        elif search_type == '2':
-            search_type = "function"
-        elif search_type == '3':
-            search_type = "class"
+        # elif search_type == '2':
+        #     search_type = "function"
+        # elif search_type == '3':
+        #     search_type = "class"
         # elif search_type == '4':
         #     search_type = "llm"
         elif search_type == 'q':

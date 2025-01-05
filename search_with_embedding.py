@@ -33,9 +33,10 @@ def print_line_search_resp(line_search_resp, print_file_path=False):
             file_name = file_path.split("\\")[-1]
             line_number = hit['_source']['line_number']
             line_score = hit['_score']
-            if print_file_path:
-                print("File: ", file_path)
-            print(f"Line {line_number}, Score: {line_score}, Content: {content.strip()}")
+            if line_score > 0:
+                if print_file_path:
+                    print("File: ", file_path)
+                print(f"Line {line_number}, Score: {line_score}, Content: {content.strip()}")
     else:
         print("No relevant lines found!")
 
@@ -100,25 +101,27 @@ def knn_combined_search(idx_name, query_embedding, search_input):
                             }
                             )
 
-def knn_field_search(idx_name, field_name, search_input):
+def lines_knn_function_search(idx_name, query_embedding):
     return es_client.search(index=idx_name,
-                            body={
+                            body={"size": 3,
+                                "knn": {
+                                    "field": "embedding",
+                                    "query_vector": query_embedding,
+                                    "k": 3,
+                                    "num_candidates": 3
+                                },
                                 "query": {
                                     "bool": {
-                                        "should": [
-                                            # Full-text search on the function field
+                                        "must_not": [
                                             {
-                                                "match": {
-                                                    field_name: search_input
-                                                #"function_name": search_input  # The text you're searching for
+                                                "term": {
+                                                    "function_name.keyword": "None"
                                                 }
                                             }
                                         ]
                                     }
-                                },
-                                "size": 3
-                            }
-                            )
+                                }
+                            })
 
 def lines_knn_search(idx_name, file_path, query_embedding):
     return es_client.search(index=idx_name, knn= {"field": "embedding",
@@ -134,11 +137,12 @@ def search_codebase(search_input, search_type):
         resp = knn_combined_search(index_name, search_embedding, search_input)
         print("\nResult of content search:")
         print_resp(resp, search_embedding, "knn")
-    elif search_type == "function":
-        resp = knn_field_search(lines_index_name, "function_name",search_input)
-        print("\nResult of function search:")
-        print_line_search_resp(resp, True)
-    elif search_type == "class":
-        resp = knn_field_search(lines_index_name, "class_name", search_input)
-        print("\nResult of class search:")
-        print_line_search_resp(resp, True)
+    # elif search_type == "function":
+    #     search_embedding = get_query_embedding(search_input)
+    #     resp = lines_knn_function_search(lines_index_name, search_embedding)
+    #     print("\nResult of function search:")
+    #     print_line_search_resp(resp, True)
+    # elif search_type == "class":
+    #     resp = knn_field_search(lines_index_name, "class_name", search_input)
+    #     print("\nResult of class search:")
+    #     print_line_search_resp(resp, True)
