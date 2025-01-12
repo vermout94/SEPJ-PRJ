@@ -3,25 +3,25 @@ import os
 import re
 import time
 import sys
-
 from elasticsearch import Elasticsearch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
 # Initializing Elasticsearch
-
 index_name = "codebase_index"
 lines_index_name = "codebase_lines_index"
-device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+
 es_user = os.getenv('ES_USERNAME', 'elastic')
 es_password = os.getenv('ES_PASSWORD', 'password')
+
 es = Elasticsearch(
     hosts=["https://localhost:9200"],
     basic_auth=(es_user, es_password),
-    ca_certs=r".\http_ca.crt",
-    #verify_certs=False
+    ca_certs=r"./http_ca.crt",
+    verify_certs=True
 )
 
+device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
 # Loading the Hugging Face model you want to use
 model_name = "BAAI/bge-base-en-v1.5"
 # model_name = "Qwen/Qwen2.5-Coder-0.5B"

@@ -4,6 +4,7 @@ import time
 import sys
 import socket
 import platform
+import docker
 from elasticsearch import Elasticsearch
 
 # Configuration
@@ -20,6 +21,16 @@ ELASTIC_PASSWORD = os.getenv('ES_PASSWORD', 'password')
 
 # Check platform
 IS_WINDOWS = platform.system().lower() == "windows"
+
+def check_docker():
+    try:
+        client = docker.from_env()
+        client.ping()
+        return True
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+
 
 # Checking if a command exists
 def command_exists(command):
@@ -40,6 +51,14 @@ def install_docker():
             subprocess.run(["sudo", "apt-get", "update"], check=True)
             subprocess.run(["sudo", "apt-get", "install", "-y", "docker.io"], check=True)
     else:
+        subprocess.run(["open","-a","docker"])
+        for _ in range(20):
+            if check_docker():
+                print("Docker is running.")
+                break
+            else:
+                print("Docker is not running.")
+            time.sleep(3)
         print("Docker is already installed.")
 
 # Check if port is in use
@@ -102,8 +121,8 @@ def connect_to_elasticsearch():
             es = Elasticsearch(
                 [ES_HOST],
                 basic_auth=(ELASTIC_USER, ELASTIC_PASSWORD),
-                #ca_certs=r".\http_ca.crt"
-                verify_certs=False
+                ca_certs=r"./http_ca.crt",
+                verify_certs=True
             )
             if es.ping():
                 print("Connected to Elasticsearch")
