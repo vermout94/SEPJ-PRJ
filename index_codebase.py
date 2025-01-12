@@ -18,8 +18,8 @@ es_password = os.getenv('ES_PASSWORD', 'password')
 es = Elasticsearch(
     hosts=["https://localhost:9200"],
     basic_auth=(es_user, es_password),
-    #ca_certs=r".\http_ca.crt",
-    verify_certs=False
+    ca_certs=r".\http_ca.crt",
+    #verify_certs=False
 )
 
 # Loading the Hugging Face model you want to use
@@ -245,7 +245,8 @@ if __name__ == "__main__":
 
         codebase_directory = sys.argv[1]
         codebase_directory = os.path.abspath(codebase_directory)
-        #os.path.abspath("./test_files/")
+
+        #codebase_directory = os.path.abspath("./test_files/")
 
         index_codebase(codebase_directory)
         time.sleep(3) # make sure that index is up-to-date before counting

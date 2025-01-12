@@ -1,5 +1,9 @@
 from datetime import datetime
 
+# from setup import connect_to_elasticsearch
+#
+# connect_to_elasticsearch()
+
 import subprocess
 import sys
 import os
@@ -14,10 +18,15 @@ from elasticsearch import Elasticsearch
 #client = Elasticsearch("http://localhost:9200/", api_key="YOUR_API_KEY")
 
 #client = Elasticsearch("http://localhost:9200")
+#
+# CERTIFICATE_PATH = f"elasticsearch:/usr/share/elasticsearch/config/certs/http_ca.crt"
+# docker_command = ["docker", "cp", CERTIFICATE_PATH, f"./"]
+# subprocess.run(docker_command, check=True)
 
 es_password = os.getenv('ES_PASSWORD')
+#es_password = 'Tf+yhOG=9Y-rWPGIuQaw'
 
-#print(es_password)
+print(es_password)
 
 es_user = 'elastic' #os.getenv('ES_USERNAME')
 #es_password = 'QBSb_3jAgZOd_QRd00nZ' # 'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
@@ -34,7 +43,7 @@ es_client = Elasticsearch(
 if es_client.ping():
     print("Connected to Elasticsearch")
 
-print("Elasticseach info: ", es_client.info())
+print("Elasticsearch info: ", es_client.info())
 print("Indices in database: ", list(es_client.indices.get(index="*").keys()))
 
 # link to documentation of class for elasticsearch client

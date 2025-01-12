@@ -13,6 +13,7 @@ ES_HOST = f"https://localhost:{ES_PORT}"
 INDEX_NAME = "codebase_index"
 LINES_INDEX_NAME = "codebase_lines_index"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
+CERTIFICATE_PATH = f"elasticsearch:/usr/share/elasticsearch/config/certs/http_ca.crt"
 MAPPING_FILE = "custom_mapping.json"
 ELASTIC_PASSWORD = os.getenv('ES_PASSWORD') #"password"
 
@@ -56,11 +57,11 @@ def run_elasticsearch():
 
     print("Running Elasticsearch...")
     docker_command = [
-        "docker", "run", "-d", "-p", f"{ES_PORT}:{ES_PORT}",
-        "-e", "discovery.type=single-node",
-        "-e", f"xpack.security.enabled=true",
+        "docker", "run", "-d", "--name", "elasticsearch",
+        "-p", f"{ES_PORT}:{ES_PORT}",
+        "-it", "-m", "1GB",
         "-e", f"ELASTIC_PASSWORD={ELASTIC_PASSWORD}",
-        "--name", "elasticsearch", DOCKER_IMAGE
+        DOCKER_IMAGE
     ]
     subprocess.run(docker_command, check=True)
 
@@ -80,14 +81,27 @@ def install_python_dependencies():
     print("Installing required Python libraries...")
     subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "elasticsearch"], check=True)
 
+def get_elasticsearch_certificate():
+    print("Retrieving elasticsearch server certificate...")
+    for attempt in range(30):
+        try:
+            docker_command = ["docker", "cp", CERTIFICATE_PATH, f"./"]
+            subprocess.run(docker_command, check=True)
+            return True
+        except Exception as e:
+            print(f"Attempt {attempt + 1}: failed due to {e}, retrying...")
+        time.sleep(3)
+
 # Connect to Elasticsearch
 def connect_to_elasticsearch():
     print("Trying to connect to Elasticsearch server...")
-    for attempt in range(20):
+
+    for attempt in range(40):
         try:
             es = Elasticsearch(
                 [ES_HOST],
                 basic_auth=("elastic", ELASTIC_PASSWORD),
+                #ca_certs=r".\http_ca.crt"
                 verify_certs=False
             )
             if es.ping():
@@ -123,10 +137,11 @@ def main():
     install_docker()
     run_elasticsearch()
     install_python_dependencies()
+    get_elasticsearch_certificate()
     es = connect_to_elasticsearch()
     create_custom_mapping(es, INDEX_NAME)
     create_custom_mapping(es, LINES_INDEX_NAME)
-    #create_custom_mapping(es, "tmp_idx") # creating temporary index for searching lines
+
     print("Setup completed.")
 
 if __name__ == "__main__":
