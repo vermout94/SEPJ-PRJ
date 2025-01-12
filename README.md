@@ -35,6 +35,9 @@ NOTE: The start-up and configuration of the docker container can also be done au
 
 Open the project folder in the IDE of your choice (e.g. PyCharm) or simply open a terminal for execution of commands and change to the directory of the project's files.
 
+Setting environment variables for Elasticsearch user and password.
+If the environment variables "ES_USERNAME" and "ES_PASSWORD" are not set the default username ('elastic') and password ('password') of Elasticsearch will be used.
+
 Run the script file "setup.py" in the project source folder:
 
 ```
@@ -56,7 +59,7 @@ Only indexed files are considered in processing a search query!
 Run the script file "index_codebase.py" in the project source folder:
 
 ```
-python index_codebase.py C:\Users\...\SEPJ-PRJ\test_files
+python index_codebase.py *path to codebase directory*
 ```
 
 The filepath of the codebase directory has to be provided as argument!
