@@ -242,11 +242,18 @@ if __name__ == "__main__":
             raise ValueError("Elasticsearch is not running or accessible.")
 
         # Path to codebase
+        try:
+            codebase_directory = sys.argv[1]
+        except IndexError:
+            raise ValueError("Please provide the path to the codebase directory as an argument.")
 
-        codebase_directory = sys.argv[1]
+        #check if path exists and is a directory
+        if not os.path.exists(codebase_directory):
+            raise ValueError(f"Directory does not exist: {codebase_directory}")
+        if not os.path.isdir(codebase_directory):
+            raise ValueError(f"Path is not a directory: {codebase_directory}")
         codebase_directory = os.path.abspath(codebase_directory)
 
-        #codebase_directory = os.path.abspath("./test_files/")
 
         index_codebase(codebase_directory)
         time.sleep(3) # make sure that index is up-to-date before counting
