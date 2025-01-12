@@ -69,8 +69,6 @@ def indexing_by_file(file_path, file_hash, doc_id, idx_name, mode):
         # Get embedding
         embedding = get_embedding(code_content)
 
-        # print("Embedding dimensions:", len(embedding)) # Confirm embedding dimensions are as expected (e.g., 768)
-
         # Create document for Elasticsearch
         doc = {
             "content": code_content,  # add hashing to lines = full doc content

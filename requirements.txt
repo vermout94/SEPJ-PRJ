@@ -74,7 +74,6 @@ tenacity==8.1.0
 tensorflow-io-gcs-filesystem==0.37.1
 tensorflow-macos
 tensorflow-metal
-#tensorflow
 termcolor==2.4.0
 thinc==8.2.3
 threadpoolctl==3.1.0
@@ -91,3 +90,4 @@ wasabi==1.1.2
 weasel==0.3.4
 werkzeug==3.0.4
 wheel==0.37.1
+docker
