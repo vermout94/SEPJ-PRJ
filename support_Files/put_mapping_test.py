@@ -4,7 +4,7 @@ es_user = 'elastic' #os.getenv('ES_USERNAME')
 es_password = 'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
 es_host = "http://localhost:9200"
 index_name = "codebase_index"
-MAPPING_FILE = "custom_mapping.json"  # Mapping file
+MAPPING_FILE = "../custom_mapping.json"  # Mapping file
 
 es_client = Elasticsearch(
     "https://localhost:9200",

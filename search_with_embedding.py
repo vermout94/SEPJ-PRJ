@@ -1,84 +1,6 @@
-import platform
+from index_codebase import get_embedding as get_query_embedding, es as es_client, index_name, lines_index_name
 
-import subprocess
-import sys
-
-# def install(package):
-#     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-#
-# install("transformers")
-# install("torch")
-
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import torch
-from elasticsearch import Elasticsearch
-
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-
-# Loading the Hugging Face model
-model_name = "Qwen/Qwen2.5-Coder-0.5B" #"BAAI/bge-base-en-v1.5"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name, output_hidden_states=True).to(device)
-
-def get_query_embedding(query):
-    inputs = tokenizer(query, return_tensors="pt").to(device)
-    with torch.no_grad(): # no_grad() --> Disabling gradient calculation is useful for inference, when you are sure that you will not call Tensor.backward().
-                          # It will reduce memory consumption for computations that would otherwise have requires_grad=True.
-        outputs = model(**inputs)
-
-        hidden_states = outputs.hidden_states[-1]  # Get the last layer hidden
-        embedding = hidden_states.mean(dim=1).squeeze().cpu().numpy().tolist()
-
-        del outputs
-
-        if platform.system()=='Windows':
-
-            torch.cuda.empty_cache()
-
-        if platform.system()=='Darwin': # Darwin --> Mac
-                                          # https://stackoverflow.com/questions/1854/how-to-identify-which-os-python-is-running-on
-
-            torch.mps.empty_cache() # "mps" refers to "Metal Performance Shaders" which are available for Mac (Apple)
-                                    # --> see: https://developer.apple.com/metal/pytorch/
-        return embedding
-
-
-es_user = 'elastic' #os.getenv('ES_USERNAME')
-es_password = 'e3eIx+qCdwGykhuLnjcP' #'YJZ-7Vi-h_Xyv0v=R-jJ' #os.getenv('ES_PASSWORD')
-es_host = "http://localhost:9200"
-index_name = "codebase_index"
-MAPPING_FILE = "custom_mapping.json"  # Mapping file
-
-es_client = Elasticsearch(
-    "https://localhost:9200",
-    ca_certs=r".\http_ca.crt",
-    basic_auth=(es_user, es_password)
-)
-
-query_embedding = get_query_embedding("packages_list")
-
-print(type(query_embedding))
-
-print("Length of embedding: ", len(query_embedding))
-
-# query_embedding_str = str(query_embedding[0])
-#
-# query_embedding_str_length = len(query_embedding_str)
-# print(query_embedding_str_length)
-
-# print(query_embedding_str[1:50])
-# print(query_embedding_str[-50:query_embedding_str_length-1])
-#
-# print(query_embedding_str[:50])
-# print(query_embedding_str[-50:])
-
-# query_embedding_str_as_vector = query_embedding_str[1:query_embedding_str_length-1]
-
-print(query_embedding)
-
-def print_resp(resp):
-
-    print("Type of response: ", type(resp))
+def print_resp(resp, search_embedding, lines_search_mode):
 
     print("Number of hits: ", len(resp['hits']['hits']) )
 
@@ -86,39 +8,136 @@ def print_resp(resp):
 
     for hit in response_json['hits']['hits']:
         file_path = hit['_source']['file_path']
-        file_score = hit['_score']
-        # content = hit['_source']['content']
-        # line_number = hit['_source']['line_number']
 
-        print(f"File: {file_path}, Score: {file_score}") #, Line {line_number}: {content.strip()}")
+        file_score = hit['_score']
+        print("==================")
+        print(f"File: {file_path}, Score: {file_score}")
+
+        # searching lines of each file
+        if lines_search_mode == "similarity":
+            line_search_resp = lines_similarity_search(lines_index_name, file_path, search_embedding)
+        elif lines_search_mode == "knn":
+            line_search_resp = lines_knn_search(lines_index_name, file_path, search_embedding)
+        else:
+            print("Unknown mode!")
+            return
+
+        print_line_search_resp(line_search_resp)
+
+def print_line_search_resp(line_search_resp, print_file_path=False):
+    if line_search_resp['hits']['total']['value'] > 0:
+        print("Most Relevant Lines:")
+        for hit in line_search_resp['hits']['hits']:
+            content = hit['_source']['content']
+            file_path = hit['_source']['file_path']
+            file_name = file_path.split("\\")[-1]
+            line_number = hit['_source']['line_number']
+            line_score = hit['_score']
+            if line_score > 0:
+                if print_file_path:
+                    print("File: ", file_path)
+                print(f"Line {line_number}, Score: {line_score}, Content: {content.strip()}")
+    else:
+        print("No relevant lines found!")
 
 # vector search based on similarity of indexed embedding vectors
-
-resp = es_client.search(index="codebase_index", body={ "query": {
-                                                           "script_score": {
-                                                              "query": {
-                                                                "match_all": {}
-                                                              },
-                                                              "script": {
-                                                                "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
-                                                                "params": {
-                                                                  "query_vector": query_embedding
+def similarity_search(idx_name, query_embedding):
+    return es_client.search(index=idx_name, body={ "size":"3", #returns only top 3 hits!
+                                                    "query": {
+                                                               "script_score": {
+                                                                  "query": {
+                                                                    "match_all": {}
+                                                                  },
+                                                                  "script": {
+                                                                    "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                                                                    "params": {
+                                                                      "query_vector": query_embedding
+                                                                    }
+                                                                  }
                                                                 }
-                                                              }
                                                             }
-                                                        }
-                                                     })
+                                                         })
 
-print("Result of vector search based on similarity:")
-print_resp(resp)
+def lines_similarity_search(idx_name, file_path, query_embedding):
+    return es_client.search(index=idx_name, body={ "size":"3", #returns only top 3 hits!
+                                                    "query": {
+                                                               "script_score": {
+                                                                  "query": {
+                                                                    "term": {"file_path.keyword": file_path}
+                                                                  },
+                                                                  "script": {
+                                                                    "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                                                                    "params": {
+                                                                      "query_vector": query_embedding
+                                                                    }
+                                                                  }
+                                                                }
+                                                            }
+                                                         })
 
-# vector search based on k nearest neighbours of indexed embedding vectors
+# vector search based on k nearest neighbours of indexed embedding vectors combined with full-text search
+def knn_combined_search(idx_name, query_embedding, search_input):
+    return es_client.search(index=idx_name,
+                            body={
+                                "knn": {
+                                    "field": "embedding",  # The dense vector field
+                                    "query_vector": query_embedding,  # Your query embedding
+                                    "k": 3,  # Number of nearest neighbors to retrieve
+                                    "num_candidates": 3  # Number of candidates to consider for kNN
+                                },
+                                "query": {
+                                    "bool": {
+                                        "should": [
+                                            # Full-text search on the content field
+                                            {
+                                                "match": {
+                                                    "content": search_input  # The text you're searching for
+                                                }
+                                            }
+                                        ]
+                                    }
+                                },
+                                "size": 3
+                            }
+                            )
 
-resp = es_client.search(index="codebase_index", knn= {"field": "embedding",
-                                                      "query_vector": query_embedding,
-                                                      "k": 3,
-                                                      "num_candidates": 3
-                                                     })
+def lines_knn_function_search(idx_name, query_embedding):
+    return es_client.search(index=idx_name, knn={"field": "embedding",
+                                                 "query_vector": query_embedding,
+                                                 "k": 3,
+                                                 "num_candidates": 3,
+                                                 "filter": [{"term": {"function_name.keyword": "function"}}]
+                                                 })
 
-print("Result of vector search based on knn:")
-print_resp(resp)
+def lines_knn_class_search(idx_name, query_embedding):
+    return es_client.search(index=idx_name, knn={"field": "embedding",
+                                                 "query_vector": query_embedding,
+                                                 "k": 3,
+                                                 "num_candidates": 3,
+                                                 "filter": [{"term": {"class_name.keyword": "class"}}]
+                                                 })
+
+def lines_knn_search(idx_name, file_path, query_embedding):
+    return es_client.search(index=idx_name, knn= {"field": "embedding",
+                                                  "query_vector": query_embedding,
+                                                  "k": 3,
+                                                  "num_candidates": 3,
+                                                  "filter" : [ {"term": {"file_path.keyword": file_path}} ]
+                                                 })
+
+def search_codebase(search_input, search_type):
+
+    search_embedding = get_query_embedding(search_input)
+
+    if search_type == "content":
+        resp = knn_combined_search(index_name, search_embedding, search_input)
+        print("\nResult of content search:")
+        print_resp(resp, search_embedding, "knn")
+    elif search_type == "function":
+        resp = lines_knn_function_search(lines_index_name, search_embedding)
+        print("\nResult of function search:")
+        print_line_search_resp(resp, True)
+    elif search_type == "class":
+        resp = lines_knn_class_search(lines_index_name, search_embedding)
+        print("\nResult of class search:")
+        print_line_search_resp(resp, True)
