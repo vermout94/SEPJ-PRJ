@@ -15,7 +15,8 @@ LINES_INDEX_NAME = "codebase_lines_index"
 DOCKER_IMAGE = f"docker.elastic.co/elasticsearch/elasticsearch:{ES_VERSION}"
 CERTIFICATE_PATH = f"elasticsearch:/usr/share/elasticsearch/config/certs/http_ca.crt"
 MAPPING_FILE = "custom_mapping.json"
-ELASTIC_PASSWORD = os.getenv('ES_PASSWORD') #"password"
+ELASTIC_USER = os.getenv('ES_USERNAME', 'elastic')
+ELASTIC_PASSWORD = os.getenv('ES_PASSWORD', 'password')
 
 # Check platform
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -100,7 +101,7 @@ def connect_to_elasticsearch():
         try:
             es = Elasticsearch(
                 [ES_HOST],
-                basic_auth=("elastic", ELASTIC_PASSWORD),
+                basic_auth=(ELASTIC_USER, ELASTIC_PASSWORD),
                 #ca_certs=r".\http_ca.crt"
                 verify_certs=False
             )
