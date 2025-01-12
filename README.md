@@ -31,7 +31,7 @@ This starts up an Elasticsearch server as a single-node cluster running locally 
 
 NOTE: The start-up and configuration of the docker container can also be done automatically by the provided setup script.
 
-### Running Elascticsearch Setup Script
+### Running Elasticsearch Setup Script
 
 Open the project folder in the IDE of your choice (e.g. PyCharm) or simply open a terminal for execution of commands and change to the directory of the project's files.
 
