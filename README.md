@@ -13,6 +13,7 @@ Therefore, make sure that Python is installed on those machines where the tool s
 
 For the setup and usage of Python the online documentation is referenced:   
 https://docs.python.org/3/using/index.html
+https://www.python.org/downloads/
 
 A widely used open source distribution platform for Python is Anaconda which includes the installation of Python itself:   
 https://www.anaconda.com/download
