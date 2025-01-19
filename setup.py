@@ -31,6 +31,15 @@ def check_docker():
         print(f"Error: {e}")
         return False
 
+def start_docker_desktop():
+    try:
+        # Path to Docker Desktop executable
+        docker_path = r"C:\Program Files\Docker\Docker\Docker Desktop.exe"
+        # Start Docker Desktop
+        subprocess.run([docker_path], check=True)
+        print("Docker Desktop started successfully.")
+    except Exception as e:
+        print(f"An error occurred when trying to start Docker Desktop: {e}")
 
 # Checking if a command exists
 def command_exists(command):
@@ -51,15 +60,23 @@ def install_docker():
             subprocess.run(["sudo", "apt-get", "update"], check=True)
             subprocess.run(["sudo", "apt-get", "install", "-y", "docker.io"], check=True)
     else:
-        subprocess.run(["open","-a","docker"])
+        print("Docker is already installed.")
+        docker_is_started = False
+
         for _ in range(20):
             if check_docker():
                 print("Docker is running.")
                 break
             else:
                 print("Docker is not running.")
+                if not docker_is_started:
+                    if IS_WINDOWS:
+                        start_docker_desktop()
+                    else:
+                        subprocess.run(["open", "-a", "docker"])
+                    docker_is_started = True
             time.sleep(3)
-        print("Docker is already installed.")
+
 
 # Check if port is in use
 def is_port_in_use(port):
