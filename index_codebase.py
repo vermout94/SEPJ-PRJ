@@ -49,7 +49,7 @@ def compute_doc_id(file_path):
 # Regex to extract function and class names
 def extract_metadata(code_content):
     function_names = re.findall(r"def ([\w_]+)\(", code_content)
-    class_names = re.findall(r"class ([\w_]+):", code_content)
+    class_names = re.findall(r"class ([\w_]+)(:|\()", code_content)
     return function_names, class_names
 
 def get_embedding(text): # Tokenize and generate outputs
