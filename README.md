@@ -2,7 +2,7 @@
 ReadMe   
 Version: 1.0, Date: 2025-01-12
 
-# SmartSearch - A tool for smart search in a codebase
+# SmartCodeSearch - A tool for smart search in a codebase
 
 ## 1. Setup
 
@@ -47,7 +47,7 @@ py -m pip install -r requirements.txt
 
 Download Docker Desktop: 
 https://www.docker.com/get-started/  
-choose the version suitable for your OS (Windows, Linux or Mac)
+Choose the version suitable for your OS (Windows, Linux or Mac) download the setup and install the program.
 
 ### Installing Elasticsearch Server with Docker
 Guide in online documentation for manual installation:
@@ -55,7 +55,7 @@ https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
 
 This starts up an Elasticsearch server as a single-node cluster running locally in a Docker container.
 
-NOTE: The start-up and configuration of the docker container can also be done automatically by the provided setup script.
+NOTE: The start-up and configuration of the docker container can also be done automatically by the provided setup script (see next section).
 
 ### Running Elasticsearch Setup Script
 
