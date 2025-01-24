@@ -122,6 +122,7 @@ def get_elasticsearch_certificate():
     print("Retrieving elasticsearch server certificate...")
     for attempt in range(30):
         try:
+            time.sleep(3)
             docker_command = ["docker", "cp", CERTIFICATE_PATH, f"./"]
             subprocess.run(docker_command, check=True)
             return True
@@ -145,10 +146,10 @@ def connect_to_elasticsearch():
                 print("Connected to Elasticsearch")
                 return es
             else:
-                print(f"Attempt {attempt + 1}: Could not connect, retrying...")
+                print(f"Connecting ...")
         except Exception as e:
             print(f"Attempt {attempt + 1}: Connection failed due to {e}, retrying...")
-        time.sleep(3)
+        time.sleep(15)
 
     print("Could not connect to Elasticsearch after multiple attempts.")
     sys.exit(1)
