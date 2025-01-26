@@ -28,7 +28,6 @@ def check_docker():
         client.ping()
         return True
     except Exception as e:
-        print(f"Docker is not available!")
         return False
 
 def start_docker_desktop():
