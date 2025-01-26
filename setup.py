@@ -28,7 +28,7 @@ def check_docker():
         client.ping()
         return True
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Docker is not available!")
         return False
 
 def start_docker_desktop():
@@ -77,7 +77,6 @@ def install_docker():
                     docker_is_started = True
             time.sleep(3)
 
-
 # Check if port is in use
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -124,10 +123,10 @@ def get_elasticsearch_certificate():
         try:
             time.sleep(3)
             docker_command = ["docker", "cp", CERTIFICATE_PATH, f"./"]
-            subprocess.run(docker_command, check=True)
+            subprocess.run(docker_command, check=True, capture_output=True)
             return True
         except Exception as e:
-            print(f"Attempt {attempt + 1}: failed due to {e}, retrying...")
+            print(f"Attempt {attempt + 1}: failed, retrying...")
         time.sleep(3)
 
 # Connect to Elasticsearch
